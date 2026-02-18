@@ -2,37 +2,37 @@ package ru.paramonova.models;
 
 import lombok.Getter;
 import lombok.ToString;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
 @ToString
 public class Task {
-    public int id;
-    private String fileName;
-    private double fieldWidth; // горизонталь
-    private double fieldLength; // вертикаль
+    private int id;
+    private int fieldWidth; // горизонталь
+    private int fieldLength; // вертикаль
     private List<Circle> circles = new ArrayList<>();
     private List<List<Pipe>> combinations = new ArrayList<>();
 
-    public Task(String fileName, int taskId) {
+    public Task(MultipartFile file, int taskId) {
         this.id = taskId;
-        if (fileName == null || fileName.isEmpty()) {
-            throw new IllegalArgumentException("Имя файла не может быть пустым");
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Файл не может быть пустым");
         }
-        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
             String line;
             if ((line = reader.readLine()) != null) {
                 String[] fieldSize = line.split(",");
                 if (fieldSize.length != 2) {
                     throw new IllegalArgumentException("Неверный формат строки с размерами поля");
                 }
-                fieldWidth = Double.parseDouble(fieldSize[0].trim());
-                fieldLength = Double.parseDouble(fieldSize[1].trim());
+                fieldWidth = Integer.parseInt(fieldSize[0].trim());
+                fieldLength = Integer.parseInt(fieldSize[1].trim());
             } else {
                 throw new IllegalArgumentException("Файл пустой");
             }
@@ -47,12 +47,12 @@ public class Task {
                 if (values.length != 3) {
                     throw new IllegalArgumentException("Неверный формат строки с описанием круга " + line);
                 }
-                double x = Double.parseDouble(values[0].trim());
-                double y = Double.parseDouble(values[1].trim());
+                int x = Integer.parseInt(values[0].trim());
+                int y = Integer.parseInt(values[1].trim());
                 boolean color = "1".equals(values[2].trim());
                 if (x < 0 || x >= fieldWidth || y < 0 || y >= fieldLength) {
                     throw new IllegalArgumentException(
-                            String.format("Круг с координатами (%.0f, %.0f) выходит за пределы поля", x, y)
+                            String.format("Круг с координатами (%d, %d) выходит за пределы поля", x, y)
                     );
                 }
                 Circle circle = new Circle(x, y, color);
@@ -65,7 +65,7 @@ public class Task {
             }
             createCombinations(whiteCircles, blackCircles);
         } catch (IOException e) {
-            throw new RuntimeException("Ошибка при чтении файла: " + fileName);
+            throw new RuntimeException("Ошибка при чтении файла: " + file.getName());
         }
     }
 
@@ -84,7 +84,7 @@ public class Task {
             }
         }
         this.combinations.addAll(allPipeCombinations);
-        System.out.println("Кол-во получившихся комбинаций: " + allPipeCombinations.size());
+        System.out.printf("Задача: %s, кол-во получившихся комбинаций: %d%n", this.id, allPipeCombinations.size());
     }
 
     private List<List<Pipe>> createPipes(List<String> positionCombinations, List<Circle> circles) {

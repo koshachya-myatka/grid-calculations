@@ -4,12 +4,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @NoArgsConstructor
@@ -17,21 +14,35 @@ import java.util.List;
 @ToString
 public class Distributor {
     private List<Task> tasks = new ArrayList<>();
-    private int taskId = 0;
+    private Map<Integer, Integer> subtasksIndexes = new HashMap<>();
 
-    public void addTask(String fileName) {
-        Task task = new Task(fileName, taskId++);
+    public void addTask(MultipartFile file) {
+        int id = getLastTaskId() + 1;
+        Task task = new Task(file, id);
         tasks.add(task);
-    }
-
-    public Task getTask(int taskId) {
-        return tasks.stream()
-                .filter(task -> task.getId() == taskId)
-                .findFirst()
-                .orElse(null);
+        subtasksIndexes.put(id, 0);
     }
 
     public int getLastTaskId() {
-        return tasks.getLast().getId();
+        return tasks.isEmpty() ? -1 : tasks.size() - 1;
+    }
+
+    public Optional<Task> getTask(int taskId) {
+        return tasks.stream()
+                .filter(task -> task.getId() == taskId)
+                .findFirst();
+    }
+
+    public void nextSubtaskId(int taskId) {
+        Optional<Task> optionalTask = tasks.stream()
+                .filter(task -> task.getId() == taskId)
+                .findFirst();
+        if (optionalTask.isPresent()) {
+            int value = subtasksIndexes.get(taskId) + 1;
+            subtasksIndexes.put(taskId, value);
+            if (value == optionalTask.get().getCombinations().size()) {
+                subtasksIndexes.put(taskId, 0);
+            }
+        }
     }
 }

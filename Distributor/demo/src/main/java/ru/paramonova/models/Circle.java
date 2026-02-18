@@ -8,7 +8,7 @@ import lombok.ToString;
 @Getter
 @ToString
 public class Circle {
-    private double x;
-    private double y;
+    private int x;
+    private int y;
     private boolean color;
 }

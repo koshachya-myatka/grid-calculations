@@ -1,13 +1,12 @@
-package ru.paramonova.models;
+package ru.paramonova.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 @AllArgsConstructor
 @Getter
+@Setter
 @ToString
-public class Pipe {
+public class PipeDto {
     private int x;
     private int y;
     private boolean color;
