@@ -1,0 +1,65 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package ru.paramonova.grpc;
+
+message Circle {
+    int32 x = 1;
+    int32 y = 2;
+    bool color = 3;
+}
+
+message Pipe {
+    int32 x = 1;
+    int32 y = 2;
+    bool color = 3;
+    int32 position = 4;
+}
+
+message PipeList {
+    repeated Pipe pipes = 1;
+}
+
+message Task {
+    int32 id = 1;
+    int32 fieldWidth = 2;
+    int32 fieldLength = 3;
+    repeated Circle circles = 4;
+    repeated PipeList combinations = 5;
+    int32 totalCombinations = 6;
+}
+
+message FileRequest {
+    string fileName = 1;
+    bytes fileData = 2;
+}
+
+message TaskResponse {
+    int32 id = 1;
+}
+
+message TaskRequest {
+    int32 id = 1;
+}
+
+message TaskInfoResponse {
+    int32 taskId = 1;
+    int32 fieldWidth = 2;
+    int32 fieldLength = 3;
+    repeated Circle circles = 4;
+    int32 totalCombinations = 5;
+    int32 currentSubtaskIndex = 6;
+}
+
+message SubTaskResponse {
+    int32 taskId = 1;
+    int32 subtaskId = 2;
+    int32 fieldWidth = 3;
+    int32 fieldLength = 4;
+    repeated Pipe combination = 5;
+}
+
+service GridService {
+    rpc addTask(FileRequest) returns (TaskResponse);
+    rpc getNextTaskCombination(stream TaskRequest) returns (stream SubTaskResponse);
+    rpc getTaskInfo(TaskRequest) returns (TaskInfoResponse);
+}

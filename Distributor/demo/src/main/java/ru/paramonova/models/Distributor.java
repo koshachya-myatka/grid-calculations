@@ -33,7 +33,7 @@ public class Distributor {
                 .findFirst();
     }
 
-    public void nextSubtaskId(int taskId) {
+    public void nextSubtaskIndex(int taskId) {
         Optional<Task> optionalTask = tasks.stream()
                 .filter(task -> task.getId() == taskId)
                 .findFirst();

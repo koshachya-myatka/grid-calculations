@@ -47,7 +47,7 @@ public class DistributorController {
         }
         Task task = optionalTask.get();
         int subtaskId = distributor.getSubtasksIndexes().get(taskId);
-        distributor.nextSubtaskId(taskId);
+        distributor.nextSubtaskIndex(taskId);
         List<Pipe> combination = task.getCombinations().get(subtaskId);
         List<PipeDto> pipeDtos = combination.stream()
                 .map(pipe -> new PipeDto(pipe.getX(), pipe.getY(), pipe.isColor(), pipe.getPosition()))
@@ -55,7 +55,8 @@ public class DistributorController {
         Map<String, Object> response = new HashMap<>();
         response.put("taskId", taskId);
         response.put("subtaskId", subtaskId);
-        response.put("totalCombinations", task.getCombinations().size());
+        response.put("fieldWidth", task.getFieldWidth());
+        response.put("fieldLength", task.getFieldLength());
         response.put("combination", pipeDtos);
         return ResponseEntity.ok(response);
     }
