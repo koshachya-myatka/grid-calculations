@@ -8,20 +8,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ShaperService {
     // id таски - сама таска
-    private final ConcurrentHashMap<Integer, Task> tasks = new ConcurrentHashMap<>();
+    private final Map<Integer, Task> tasks = new ConcurrentHashMap<>();
     // id таски - список ее батчей
-    private final ConcurrentHashMap<Integer, List<Batch>> batches = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Batch>> batches = new ConcurrentHashMap<>();
     // id таски - текущий стартовый номер комбинации белых кругов
-    private final ConcurrentHashMap<Integer, Integer> batchStartsWhite = new ConcurrentHashMap<>();
+    private final Map<Integer, Integer> batchStartsWhite = new ConcurrentHashMap<>();
     // id таски - текущий стартовый номер комбинации черных кругов
-    private final ConcurrentHashMap<Integer, Integer> batchStartsBlack = new ConcurrentHashMap<>();
+    private final Map<Integer, Integer> batchStartsBlack = new ConcurrentHashMap<>();
     // id таски - список результатов решений для нее
-    private final ConcurrentHashMap<Integer, List<Boolean>> results = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Boolean>> results = new ConcurrentHashMap<>();
     private final AtomicInteger nextTaskId = new AtomicInteger(0);
     private final AtomicInteger nextBatchId = new AtomicInteger(0);
 
@@ -30,6 +31,7 @@ public class ShaperService {
         Task task = createTask(taskId, fileName, fileData);
         tasks.put(taskId, task);
         batches.put(taskId, new ArrayList<>());
+        results.put(taskId, new ArrayList<>());
         batchStartsWhite.put(taskId, 0);
         batchStartsBlack.put(taskId, 0);
         return task;
@@ -103,26 +105,43 @@ public class ShaperService {
         if (task == null) {
             return null;
         }
-        int batchId = nextBatchId.getAndIncrement();
+        int totalW = task.getTotalWhiteCombinations();
+        int totalB = task.getTotalBlackCombinations();
         int startWhiteCombination = batchStartsWhite.get(taskId);
         int startBlackCombination = batchStartsBlack.get(taskId);
+        if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
+            return null;
+        }
+        int batchId = nextBatchId.getAndIncrement();
+        int numberWhiteCombinations = Math.min(8, totalW - startWhiteCombination);
+        int numberBlackCombinations = Math.min(4, totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
                 .setTaskId(taskId)
                 .setStartWhiteCombination(startWhiteCombination)
-                .setNumberWhiteCombinations(8)
+                .setNumberWhiteCombinations(numberWhiteCombinations)
                 .setStartBlackCombination(startBlackCombination)
-                .setNumberBlackCombinations(4)
+                .setNumberBlackCombinations(numberBlackCombinations)
                 .setResult(false)
                 .build();
         List<Batch> currentTaskBatches = batches.get(taskId);
         currentTaskBatches.add(batch);
-        System.out.println(batches.get(taskId).size());
-        batchStartsBlack.merge(taskId, 4, Integer::sum);
-        if (startBlackCombination + 4 >= task.getTotalBlackCombinations()) {
+        batchStartsBlack.merge(taskId, numberBlackCombinations, Integer::sum);
+        if (startBlackCombination + numberBlackCombinations >= task.getTotalBlackCombinations()) {
             batchStartsBlack.replace(taskId, 0);
-            batchStartsWhite.merge(taskId, 8, Integer::sum);
+            batchStartsWhite.merge(taskId, numberWhiteCombinations, Integer::sum);
         }
         return batch;
+    }
+
+    //TODO перепроверь это
+    public void addResults(int taskId, List<Boolean> newResults) {
+        List<Boolean> currentResults = results.get(taskId);
+        currentResults.addAll(newResults);
+        System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId);
+    }
+
+    public List<Boolean> getResults(int taskId) {
+        return results.get(taskId);
     }
 }

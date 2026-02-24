@@ -19,13 +19,15 @@ public class MyGridClient {
     private final ManagedChannel channel;
     private final GridServiceGrpc.GridServiceBlockingStub blockingStub;
     private final GridServiceGrpc.GridServiceStub asyncStub;
+    private final DistributorService distributorService;
 
-    public MyGridClient(String host, int port) {
+    public MyGridClient(String host, int port, DistributorService distributorService) {
         this.channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()
                 .build();
         this.blockingStub = GridServiceGrpc.newBlockingStub(channel);
         this.asyncStub = GridServiceGrpc.newStub(channel);
+        this.distributorService = distributorService;
     }
 
     public void shutdown() throws InterruptedException {
@@ -42,6 +44,12 @@ public class MyGridClient {
                 .build();
         TaskIdResponse response = blockingStub.addTask(request);
         System.out.println("Задача " + response.getTaskId() + " создана. ");
+        TaskRequest taskRequest = TaskRequest.newBuilder()
+                .setTaskId(response.getTaskId())
+                .build();
+        RegisterResponse registerResponse = blockingStub.registerTask(taskRequest);
+        distributorService.registerTask(registerResponse.getTask(),
+                registerResponse.getTaskJar().toByteArray(), registerResponse.getCalcClassName());
         return response.getTaskId();
     }
 
@@ -96,7 +104,7 @@ public class MyGridClient {
 
             @Override
             public void onCompleted() {
-                System.out.println("Стрим завершен. Получено комбинаций: " + receivedCount);
+                System.out.println("Стрим завершен. Получено батчей: " + receivedCount);
                 latch.countDown();
             }
         });
@@ -113,4 +121,14 @@ public class MyGridClient {
         requestObserver.onCompleted();
         latch.await();
     }
+
+    //TODO доделать добавление результатов
+//    public void addResults(int taskId, List<Boolean> results) {
+//        ResultsRequest req = ResultsRequest.newBuilder()
+//                .setTaskId(taskId)
+//                .addAllResults(results)
+//                .build();
+//        ResultsResponse resp = blockingStub.addResult(req);
+//        System.out.println("Сервер ответил на addResult: " + resp.getMessage());
+//    }
 }

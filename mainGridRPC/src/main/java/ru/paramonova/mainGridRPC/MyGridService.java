@@ -36,6 +36,35 @@ public class MyGridService
     }
 
     @Override
+    public void registerTask(TaskRequest request, StreamObserver<RegisterResponse> responseObserver) {
+        System.out.println("Происходит регистрация задачи " + request.getTaskId() + " для распределителя");
+        int taskId = request.getTaskId();
+        Task task = shaperService.getTask(taskId);
+        if (task == null) {
+            responseObserver.onError(io.grpc.Status.NOT_FOUND
+                    .withDescription("Задача " + taskId + " не найдена")
+                    .asRuntimeException());
+            return;
+        }
+        try {
+            //TODO тут доделать шнягу с jar
+
+            RegisterResponse response = RegisterResponse.newBuilder()
+                    .setTask(task)
+//                    .setTaskJar()
+                    .setCalcClassName("ru.paramonova.calculator.BatchCalculator")
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(io.grpc.Status.INTERNAL
+                    .withDescription("Ошибка при генерации jar и регистрации задачи: " + e.getMessage())
+                    .asRuntimeException());
+        }
+    }
+
+    @Override
     public void getTaskInfo(TaskRequest request, StreamObserver<TaskResponse> responseObserver) {
         try {
             int taskId = request.getTaskId();
@@ -76,13 +105,6 @@ public class MyGridService
                     }
                     Batch batch = shaperService.getNextBatch(taskId);
                     if (batch == null) {
-                        responseObserver.onError(io.grpc.Status.NOT_FOUND
-                                .withDescription("Батч для задачи " + taskId + " не может быть создан")
-                                .asRuntimeException());
-                        return;
-                    }
-                    if (batch.getStartWhiteCombination() >= task.getTotalWhiteCombinations() ||
-                            batch.getStartBlackCombination() >= task.getTotalBlackCombinations()) {
                         responseObserver.onCompleted();
                         return;
                     }
@@ -116,7 +138,19 @@ public class MyGridService
     }
 
     @Override
-    public void addResult(TaskRequest request, StreamObserver<ResultsResponse> responseObserver) {
-
+    public void addResult(ResultsRequest request, StreamObserver<ResultsResponse> responseObserver) {
+        try {
+            int taskId = request.getTaskId();
+            shaperService.addResults(taskId, request.getResultsList());
+            ResultsResponse response = ResultsResponse.newBuilder()
+                    .setAccepted(true)
+                    .build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(io.grpc.Status.INTERNAL
+                    .withDescription("Ошибка при добавлении результатов: " + e.getMessage())
+                    .asRuntimeException());
+        }
     }
 }

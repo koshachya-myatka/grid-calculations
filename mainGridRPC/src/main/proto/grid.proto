@@ -56,13 +56,25 @@ message BatchResponse {
     Batch batch = 1;
 }
 
+message RegisterResponse {
+    Task task = 1;
+    bytes taskJar = 2;
+    string calcClassName = 3;
+}
+
+message ResultsRequest {
+    int32 taskId = 1;
+    repeated bool results = 2;
+}
+
 message ResultsResponse {
-    repeated bool results = 1;
+    bool accepted = 1;
 }
 
 service GridService {
     rpc addTask(FileRequest) returns (TaskIdResponse);
+    rpc registerTask(TaskRequest) returns (RegisterResponse);
     rpc getTaskInfo(TaskRequest) returns (TaskResponse);
     rpc getNextBatch(stream TaskRequest) returns (stream BatchResponse);
-    rpc addResult(TaskRequest) returns (ResultsResponse);
+    rpc addResult(ResultsRequest) returns (ResultsResponse);
 }
