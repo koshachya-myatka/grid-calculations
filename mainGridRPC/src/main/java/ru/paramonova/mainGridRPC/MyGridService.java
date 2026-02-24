@@ -3,33 +3,31 @@ package ru.paramonova.mainGridRPC;
 import io.grpc.stub.StreamObserver;
 import ru.paramonova.grpc.*;
 
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MyGridService extends GridServiceGrpc.GridServiceImplBase {
+public class MyGridService
+        extends GridServiceGrpc.GridServiceImplBase {
     private final DistributorService distributorService;
-    private final ConcurrentHashMap<Integer, StreamObserver<SubTaskResponse>> activeStreams = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, StreamObserver<BatchResponse>> activeStreams = new ConcurrentHashMap<>();
 
     public MyGridService(DistributorService distributorService) {
         this.distributorService = distributorService;
     }
 
     @Override
-    public void addTask(FileRequest request, StreamObserver<TaskResponse> responseObserver) {
+    public void addTask(FileRequest request, StreamObserver<TaskIdResponse> responseObserver) {
         try {
             System.out.println("Получен запрос на добавление задачи с файлом: " + request.getFileName());
             Task task = distributorService.addTask(
                     request.getFileName(),
                     request.getFileData().toByteArray()
             );
-            TaskResponse response = TaskResponse.newBuilder()
-                    .setId(task.getId())
+            TaskIdResponse response = TaskIdResponse.newBuilder()
+                    .setTaskId(task.getTaskId())
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
-
-            System.out.println("Задача " + task.getId() + " создана. Всего комбинаций: " + task.getTotalCombinations());
-
+            System.out.printf("Задача %d создана%n", task.getTaskId());
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
                     .withDescription("Ошибка при создании задачи: " + e.getMessage())
@@ -38,13 +36,35 @@ public class MyGridService extends GridServiceGrpc.GridServiceImplBase {
     }
 
     @Override
-    public StreamObserver<TaskRequest> getNextTaskCombination(StreamObserver<SubTaskResponse> responseObserver) {
+    public void getTaskInfo(TaskRequest request, StreamObserver<TaskResponse> responseObserver) {
+        try {
+            int taskId = request.getTaskId();
+            Task task = distributorService.getTask(taskId);
+            if (task == null) {
+                responseObserver.onError(io.grpc.Status.NOT_FOUND
+                        .withDescription("Задача " + taskId + " не найдена")
+                        .asRuntimeException());
+                return;
+            }
+            TaskResponse.Builder responseBuilder = TaskResponse.newBuilder()
+                    .setTask(task);
+            responseObserver.onNext(responseBuilder.build());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(io.grpc.Status.INTERNAL
+                    .withDescription("Ошибка при получении информации: " + e.getMessage())
+                    .asRuntimeException());
+        }
+    }
+
+    @Override
+    public StreamObserver<TaskRequest> getNextBatch(StreamObserver<BatchResponse> responseObserver) {
         return new StreamObserver<TaskRequest>() {
             private int currentTaskId = -1;
 
             @Override
             public void onNext(TaskRequest request) {
-                int taskId = request.getId();
+                int taskId = request.getTaskId();
                 currentTaskId = taskId;
                 try {
                     Task task = distributorService.getTask(taskId);
@@ -54,28 +74,24 @@ public class MyGridService extends GridServiceGrpc.GridServiceImplBase {
                                 .asRuntimeException());
                         return;
                     }
-
-                    int subtaskIndex = distributorService.getNextSubtaskIndex(taskId);
-
-                    if (subtaskIndex >= task.getTotalCombinations()) {
+                    Batch batch = distributorService.getNextBatch(taskId);
+                    if (batch == null) {
+                        responseObserver.onError(io.grpc.Status.NOT_FOUND
+                                .withDescription("Батч для задачи " + taskId + " не может быть создан")
+                                .asRuntimeException());
+                        return;
+                    }
+                    if (batch.getStartWhiteCombination() >= task.getTotalWhiteCombinations() &&
+                            batch.getStartBlackCombination() >= task.getTotalBlackCombinations()) {
                         responseObserver.onCompleted();
                         return;
                     }
-
-                    List<Pipe> combination = task.getCombinations(subtaskIndex).getPipesList();
-
-                    SubTaskResponse.Builder responseBuilder = SubTaskResponse.newBuilder()
-                            .setTaskId(taskId)
-                            .setSubtaskId(subtaskIndex)
-                            .setFieldWidth(task.getFieldWidth())
-                            .setFieldLength(task.getFieldLength())
-                            .addAllCombination(combination);
-
+                    BatchResponse.Builder responseBuilder = BatchResponse.newBuilder()
+                            .setBatch(batch);
                     responseObserver.onNext(responseBuilder.build());
-
                 } catch (Exception e) {
                     responseObserver.onError(io.grpc.Status.INTERNAL
-                            .withDescription("Ошибка при получении подзадачи: " + e.getMessage())
+                            .withDescription("Ошибка при получении батча: " + e.getMessage())
                             .asRuntimeException());
                 }
             }
@@ -100,33 +116,7 @@ public class MyGridService extends GridServiceGrpc.GridServiceImplBase {
     }
 
     @Override
-    public void getTaskInfo(TaskRequest request, StreamObserver<TaskInfoResponse> responseObserver) {
-        try {
-            int taskId = request.getId();
-            Task task = distributorService.getTask(taskId);
+    public void addResult(TaskRequest request, StreamObserver<ResultsResponse> responseObserver) {
 
-            if (task == null) {
-                responseObserver.onError(io.grpc.Status.NOT_FOUND
-                        .withDescription("Задача " + taskId + " не найдена")
-                        .asRuntimeException());
-                return;
-            }
-
-            TaskInfoResponse.Builder responseBuilder = TaskInfoResponse.newBuilder()
-                    .setTaskId(taskId)
-                    .setFieldWidth(task.getFieldWidth())
-                    .setFieldLength(task.getFieldLength())
-                    .addAllCircles(task.getCirclesList())
-                    .setTotalCombinations(task.getTotalCombinations())
-                    .setCurrentSubtaskIndex(distributorService.getCurrentSubtaskIndex(taskId));
-
-            responseObserver.onNext(responseBuilder.build());
-            responseObserver.onCompleted();
-
-        } catch (Exception e) {
-            responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription("Ошибка при получении информации: " + e.getMessage())
-                    .asRuntimeException());
-        }
     }
 }

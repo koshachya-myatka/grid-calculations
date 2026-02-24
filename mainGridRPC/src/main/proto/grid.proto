@@ -8,6 +8,26 @@ message Circle {
     bool color = 3;
 }
 
+message Task {
+    int32 taskId = 1;
+    int32 fieldWidth = 2;
+    int32 fieldLength = 3;
+    int32 totalWhiteCombinations = 4;
+    int32 totalBlackCombinations = 5;
+    repeated Circle whiteCircles = 6;
+    repeated Circle blackCircles = 7;
+}
+
+message Batch {
+    int32 batchId = 1;
+    int32 taskId = 2;
+    int32 startWhiteCombination = 3;
+    int32 numberWhiteCombinations = 4;
+    int32 startBlackCombination = 5;
+    int32 numberBlackCombinations = 6;
+    bool result = 7;
+}
+
 message Pipe {
     int32 x = 1;
     int32 y = 2;
@@ -15,51 +35,34 @@ message Pipe {
     int32 position = 4;
 }
 
-message PipeList {
-    repeated Pipe pipes = 1;
-}
-
-message Task {
-    int32 id = 1;
-    int32 fieldWidth = 2;
-    int32 fieldLength = 3;
-    repeated Circle circles = 4;
-    repeated PipeList combinations = 5;
-    int32 totalCombinations = 6;
-}
-
 message FileRequest {
     string fileName = 1;
     bytes fileData = 2;
 }
 
-message TaskResponse {
-    int32 id = 1;
+message TaskIdResponse {
+    int32 taskId = 1;
 }
 
 message TaskRequest {
-    int32 id = 1;
+    int32 taskId = 1;
 }
 
-message TaskInfoResponse {
-    int32 taskId = 1;
-    int32 fieldWidth = 2;
-    int32 fieldLength = 3;
-    repeated Circle circles = 4;
-    int32 totalCombinations = 5;
-    int32 currentSubtaskIndex = 6;
+message TaskResponse {
+    Task task = 1;
 }
 
-message SubTaskResponse {
-    int32 taskId = 1;
-    int32 subtaskId = 2;
-    int32 fieldWidth = 3;
-    int32 fieldLength = 4;
-    repeated Pipe combination = 5;
+message BatchResponse {
+    Batch batch = 1;
+}
+
+message ResultsResponse {
+    repeated bool results = 1;
 }
 
 service GridService {
-    rpc addTask(FileRequest) returns (TaskResponse);
-    rpc getNextTaskCombination(stream TaskRequest) returns (stream SubTaskResponse);
-    rpc getTaskInfo(TaskRequest) returns (TaskInfoResponse);
+    rpc addTask(FileRequest) returns (TaskIdResponse);
+    rpc getTaskInfo(TaskRequest) returns (TaskResponse);
+    rpc getNextBatch(stream TaskRequest) returns (stream BatchResponse);
+    rpc addResult(TaskRequest) returns (ResultsResponse);
 }
