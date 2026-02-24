@@ -7,18 +7,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MyGridService
         extends GridServiceGrpc.GridServiceImplBase {
-    private final DistributorService distributorService;
+    private final ShaperService shaperService;
     private final ConcurrentHashMap<Integer, StreamObserver<BatchResponse>> activeStreams = new ConcurrentHashMap<>();
 
-    public MyGridService(DistributorService distributorService) {
-        this.distributorService = distributorService;
+    public MyGridService(ShaperService shaperService) {
+        this.shaperService = shaperService;
     }
 
     @Override
     public void addTask(FileRequest request, StreamObserver<TaskIdResponse> responseObserver) {
         try {
             System.out.println("Получен запрос на добавление задачи с файлом: " + request.getFileName());
-            Task task = distributorService.addTask(
+            Task task = shaperService.addTask(
                     request.getFileName(),
                     request.getFileData().toByteArray()
             );
@@ -39,7 +39,7 @@ public class MyGridService
     public void getTaskInfo(TaskRequest request, StreamObserver<TaskResponse> responseObserver) {
         try {
             int taskId = request.getTaskId();
-            Task task = distributorService.getTask(taskId);
+            Task task = shaperService.getTask(taskId);
             if (task == null) {
                 responseObserver.onError(io.grpc.Status.NOT_FOUND
                         .withDescription("Задача " + taskId + " не найдена")
@@ -67,21 +67,21 @@ public class MyGridService
                 int taskId = request.getTaskId();
                 currentTaskId = taskId;
                 try {
-                    Task task = distributorService.getTask(taskId);
+                    Task task = shaperService.getTask(taskId);
                     if (task == null) {
                         responseObserver.onError(io.grpc.Status.NOT_FOUND
                                 .withDescription("Задача " + taskId + " не найдена")
                                 .asRuntimeException());
                         return;
                     }
-                    Batch batch = distributorService.getNextBatch(taskId);
+                    Batch batch = shaperService.getNextBatch(taskId);
                     if (batch == null) {
                         responseObserver.onError(io.grpc.Status.NOT_FOUND
                                 .withDescription("Батч для задачи " + taskId + " не может быть создан")
                                 .asRuntimeException());
                         return;
                     }
-                    if (batch.getStartWhiteCombination() >= task.getTotalWhiteCombinations() &&
+                    if (batch.getStartWhiteCombination() >= task.getTotalWhiteCombinations() ||
                             batch.getStartBlackCombination() >= task.getTotalBlackCombinations()) {
                         responseObserver.onCompleted();
                         return;

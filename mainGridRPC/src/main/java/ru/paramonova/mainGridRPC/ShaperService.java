@@ -11,9 +11,11 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DistributorService {
+public class ShaperService {
     // id таски - сама таска
     private final ConcurrentHashMap<Integer, Task> tasks = new ConcurrentHashMap<>();
+    // id таски - список ее батчей
+    private final ConcurrentHashMap<Integer, List<Batch>> batches = new ConcurrentHashMap<>();
     // id таски - текущий стартовый номер комбинации белых кругов
     private final ConcurrentHashMap<Integer, Integer> batchStartsWhite = new ConcurrentHashMap<>();
     // id таски - текущий стартовый номер комбинации черных кругов
@@ -27,6 +29,7 @@ public class DistributorService {
         int taskId = nextTaskId.getAndIncrement();
         Task task = createTask(taskId, fileName, fileData);
         tasks.put(taskId, task);
+        batches.put(taskId, new ArrayList<>());
         batchStartsWhite.put(taskId, 0);
         batchStartsBlack.put(taskId, 0);
         return task;
@@ -103,23 +106,7 @@ public class DistributorService {
         int batchId = nextBatchId.getAndIncrement();
         int startWhiteCombination = batchStartsWhite.get(taskId);
         int startBlackCombination = batchStartsBlack.get(taskId);
-        if (startBlackCombination + 4 < task.getTotalBlackCombinations()) {
-            batchStartsBlack.merge(taskId, 4, Integer::sum);
-        } else if (startWhiteCombination + 4 < task.getTotalWhiteCombinations()) {
-            batchStartsBlack.replace(taskId, 0);
-            batchStartsWhite.merge(taskId, 8, Integer::sum);
-        } else {
-            return Batch.newBuilder()
-                    .setBatchId(batchId)
-                    .setTaskId(taskId)
-                    .setStartWhiteCombination(task.getTotalWhiteCombinations())
-                    .setNumberWhiteCombinations(8)
-                    .setStartBlackCombination(task.getTotalBlackCombinations())
-                    .setNumberBlackCombinations(4)
-                    .setResult(false)
-                    .build();
-        }
-        return Batch.newBuilder()
+        Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
                 .setTaskId(taskId)
                 .setStartWhiteCombination(startWhiteCombination)
@@ -128,5 +115,14 @@ public class DistributorService {
                 .setNumberBlackCombinations(4)
                 .setResult(false)
                 .build();
+        List<Batch> currentTaskBatches = batches.get(taskId);
+        currentTaskBatches.add(batch);
+        System.out.println(batches.get(taskId).size());
+        batchStartsBlack.merge(taskId, 4, Integer::sum);
+        if (startBlackCombination + 4 >= task.getTotalBlackCombinations()) {
+            batchStartsBlack.replace(taskId, 0);
+            batchStartsWhite.merge(taskId, 8, Integer::sum);
+        }
+        return batch;
     }
 }
