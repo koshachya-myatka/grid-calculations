@@ -52,7 +52,7 @@ public class MyGridClient {
                 .setFileData(ByteString.copyFrom(fileData))
                 .build();
         TaskIdResponse response = blockingStub.addTask(request);
-        System.out.println("Задача " + response.getTaskId() + " создана. ");
+        System.out.println("Задача " + response.getTaskId() + " создана");
         return response.getTaskId();
     }
 

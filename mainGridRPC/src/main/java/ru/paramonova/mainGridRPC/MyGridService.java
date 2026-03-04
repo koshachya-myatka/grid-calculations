@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
 import ru.paramonova.grpc.*;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,8 +51,8 @@ public class MyGridService
             return;
         }
         try {
-            Path jarPath = Paths.get("D:\\Study\\Grid Calculations\\mainGridRPC\\libs\\mainGridRPC-0.jar");
-//            Path jarPath = Paths.get("C:\\Study\\grid-calculations\\mainGridRPC\\libs\\mainGridRPC-0.jar");
+            String pathToParent = new File(System.getProperty("user.dir")).getParent();
+            Path jarPath = Paths.get(pathToParent + "\\mainGridRPC\\libs\\mainGridRPC-0.jar");
             byte[] jarBytes = Files.readAllBytes(jarPath);
             RegisterResponse response = RegisterResponse.newBuilder()
                     .setTask(task)
