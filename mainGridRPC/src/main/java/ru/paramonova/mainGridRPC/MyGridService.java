@@ -1,8 +1,12 @@
 package ru.paramonova.mainGridRPC;
 
+import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
 import ru.paramonova.grpc.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MyGridService
@@ -37,7 +41,6 @@ public class MyGridService
 
     @Override
     public void registerTask(TaskRequest request, StreamObserver<RegisterResponse> responseObserver) {
-        System.out.println("Происходит регистрация задачи " + request.getTaskId() + " для распределителя");
         int taskId = request.getTaskId();
         Task task = shaperService.getTask(taskId);
         if (task == null) {
@@ -47,16 +50,17 @@ public class MyGridService
             return;
         }
         try {
-            //TODO тут доделать шнягу с jar
-
+            Path jarPath = Paths.get("D:\\Study\\Grid Calculations\\mainGridRPC\\libs\\mainGridRPC-0.jar");
+//            Path jarPath = Paths.get("C:\\Study\\grid-calculations\\mainGridRPC\\libs\\mainGridRPC-0.jar");
+            byte[] jarBytes = Files.readAllBytes(jarPath);
             RegisterResponse response = RegisterResponse.newBuilder()
                     .setTask(task)
-//                    .setTaskJar()
-                    .setCalcClassName("ru.paramonova.calculator.BatchCalculator")
+                    .setTaskJar(ByteString.copyFrom(jarBytes))
+                    .setCalcClassName("ru.paramonova.mainGridRPC.models.BatchCalculator")
                     .build();
-
             responseObserver.onNext(response);
             responseObserver.onCompleted();
+            System.out.println("Задача " + request.getTaskId() + " зарегистрирована в распределителе");
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
                     .withDescription("Ошибка при генерации jar и регистрации задачи: " + e.getMessage())
@@ -132,18 +136,20 @@ public class MyGridService
                 if (currentTaskId != -1) {
                     activeStreams.remove(currentTaskId);
                 }
+                System.out.println("Результат для задачи " + currentTaskId + ":\n");
+                shaperService.getResult(currentTaskId);
                 responseObserver.onCompleted();
             }
         };
     }
 
     @Override
-    public void addResult(ResultsRequest request, StreamObserver<ResultsResponse> responseObserver) {
+    public void addResults(ResultsRequest request, StreamObserver<ResultsResponse> responseObserver) {
         try {
             int taskId = request.getTaskId();
             shaperService.addResults(taskId, request.getResultsList());
             ResultsResponse response = ResultsResponse.newBuilder()
-                    .setAccepted(true)
+                    .setIsAccepted(true)
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();

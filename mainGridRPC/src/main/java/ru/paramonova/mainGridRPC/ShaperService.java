@@ -22,7 +22,7 @@ public class ShaperService {
     // id таски - текущий стартовый номер комбинации черных кругов
     private final Map<Integer, Integer> batchStartsBlack = new ConcurrentHashMap<>();
     // id таски - список результатов решений для нее
-    private final Map<Integer, List<Boolean>> results = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Result>> results = new ConcurrentHashMap<>();
     private final AtomicInteger nextTaskId = new AtomicInteger(0);
     private final AtomicInteger nextBatchId = new AtomicInteger(0);
 
@@ -134,14 +134,15 @@ public class ShaperService {
         return batch;
     }
 
-    //TODO перепроверь это
-    public void addResults(int taskId, List<Boolean> newResults) {
-        List<Boolean> currentResults = results.get(taskId);
+    public void addResults(int taskId, List<Result> newResults) {
+        List<Result> currentResults = results.get(taskId);
         currentResults.addAll(newResults);
         System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId);
     }
 
-    public List<Boolean> getResults(int taskId) {
-        return results.get(taskId);
+    public Result getResult(int taskId) {
+        //TODO здесь будет выбираться итоговый результат вместо первого
+        System.out.println("Всего результатов: " + results.get(taskId).size());
+        return results.get(taskId).getFirst();
     }
 }

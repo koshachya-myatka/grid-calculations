@@ -1,25 +1,15 @@
 package ru.paramonova.mainGridRPC.models;
 
-import lombok.Getter;
-import lombok.ToString;
 import ru.paramonova.grpc.*;
+import ru.paramonova.mainGridRPC.annotations.Main;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@ToString
 public class BatchCalculator {
-    private Task task;
-    private Batch batch;
-
-    public BatchCalculator(Task task, Batch batch) {
-        this.task = task;
-        this.batch = batch;
-    }
-
-    public boolean calculateCombinations() {
-        boolean result = false;
+    @Main
+    public List<Result> calculate(Task task, Batch batch) {
+        List<Result> results = new ArrayList<>();
         int startB = batch.getStartBlackCombination();
         int endB = startB + batch.getNumberBlackCombinations();
         int startW = batch.getStartWhiteCombination();
@@ -33,15 +23,18 @@ public class BatchCalculator {
                 String positionWhite = numberToPositionCombination(8, whiteCirclesNumber, j);
                 pipes.addAll(createPipes(positionBlack, task.getBlackCirclesList()));
                 pipes.addAll(createPipes(positionWhite, task.getWhiteCirclesList()));
-                result = calculateCombination(pipes);
+                results.add(calculateCombination(pipes));
             }
         }
-        return result;
+        return results;
     }
 
-    private boolean calculateCombination(List<Pipe> pipes) {
+    private Result calculateCombination(List<Pipe> pipes) {
         //TODO вот тут должно быть адекватное решение для конкретной комбинации на возможность соединения труб линией
-        return false;
+        return Result.newBuilder()
+                .setIsConnected(false)
+                .addAllPipes(pipes)
+                .build();
     }
 
     private List<Pipe> createPipes(String positionCombination, List<Circle> circles) {

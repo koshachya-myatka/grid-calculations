@@ -35,6 +35,11 @@ message Pipe {
     int32 position = 4;
 }
 
+message Result {
+    bool isConnected = 1;
+    repeated Pipe pipes = 2;
+}
+
 message FileRequest {
     string fileName = 1;
     bytes fileData = 2;
@@ -64,11 +69,11 @@ message RegisterResponse {
 
 message ResultsRequest {
     int32 taskId = 1;
-    repeated bool results = 2;
+    repeated Result results = 2;
 }
 
 message ResultsResponse {
-    bool accepted = 1;
+    bool isAccepted = 1;
 }
 
 service GridService {
@@ -76,5 +81,5 @@ service GridService {
     rpc registerTask(TaskRequest) returns (RegisterResponse);
     rpc getTaskInfo(TaskRequest) returns (TaskResponse);
     rpc getNextBatch(stream TaskRequest) returns (stream BatchResponse);
-    rpc addResult(ResultsRequest) returns (ResultsResponse);
+    rpc addResults(ResultsRequest) returns (ResultsResponse);
 }

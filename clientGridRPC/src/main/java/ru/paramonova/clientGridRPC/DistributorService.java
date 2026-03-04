@@ -21,11 +21,15 @@ public class DistributorService {
         results.put(taskId, new ArrayList<>());
     }
 
-    public boolean isTaskRegistered(int taskId) {
-        return tasks.containsKey(taskId);
+    public Task getTask(int taskId) {
+        return tasks.get(taskId);
     }
 
-    public void executeBatch(Batch batch) {
+    public byte[] getJar(int taskId) {
+        return jars.get(taskId);
+    }
 
+    public String calcClassName(int taskId) {
+        return calcClassNames.get(taskId);
     }
 }
