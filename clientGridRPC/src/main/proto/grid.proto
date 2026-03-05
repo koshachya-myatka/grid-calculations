@@ -25,7 +25,6 @@ message Batch {
     int32 numberWhiteCombinations = 4;
     int32 startBlackCombination = 5;
     int32 numberBlackCombinations = 6;
-    bool result = 7;
 }
 
 message Pipe {

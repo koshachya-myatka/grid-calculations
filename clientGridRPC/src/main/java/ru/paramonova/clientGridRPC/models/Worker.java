@@ -37,6 +37,7 @@ public class Worker {
                 new URL[]{tempJar.toUri().toURL()},
                 Thread.currentThread().getContextClassLoader()
         );
+        //TODO не передавай название, ищи по всем классам по аннотации
         this.calculatorClass = classLoader.loadClass(className);
         this.calculatorInstance = calculatorClass.getDeclaredConstructor().newInstance();
         this.mainMethod = findMainMethod();
@@ -47,6 +48,7 @@ public class Worker {
         Method[] methods = calculatorClass.getDeclaredMethods();
         for (Method method : methods) {
             for (Annotation annotation : method.getAnnotations()) {
+                //TODO перетащить нормально анноташку
                 if (annotation.annotationType().getName().equals("Main") ||
                         annotation.annotationType().getName().endsWith(".Main")) {
                     method.setAccessible(true);
