@@ -1,7 +1,8 @@
-package ru.paramonova;
+package ru.paramonova.models;
 
 import ru.paramonova.annotations.Calculator;
 import ru.paramonova.annotations.Main;
+import ru.paramonova.annotations.Param;
 import ru.paramonova.grpc.*;
 
 import java.util.ArrayList;
@@ -10,7 +11,10 @@ import java.util.List;
 @Calculator
 public class BatchCalculator {
     @Main
-    public List<Result> calculate(Task task, Batch batch) {
+    public List<Result> calculate(@Param("task") Task task, @Param("batch") Batch batch) {
+        if (task.getTaskId() != batch.getTaskId()) {
+            throw new RuntimeException("Полученная подзадача не относится к полученной задаче");
+        }
         List<Result> results = new ArrayList<>();
         int startB = batch.getStartBlackCombination();
         int endB = startB + batch.getNumberBlackCombinations();
@@ -66,4 +70,3 @@ public class BatchCalculator {
         return new StringBuilder(builder).reverse().toString();
     }
 }
-

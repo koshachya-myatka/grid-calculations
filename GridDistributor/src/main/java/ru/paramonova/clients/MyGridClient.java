@@ -1,10 +1,13 @@
-package ru.paramonova;
+package ru.paramonova.clients;
 
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import ru.paramonova.grpc.*;
+import ru.paramonova.services.DistributorService;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,30 +15,24 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
+@Component
 public class MyGridClient {
     private final ManagedChannel channel;
     private final GridServiceGrpc.GridServiceBlockingStub blockingStub;
     private final GridServiceGrpc.GridServiceStub asyncStub;
-    private final DistributorService distributorService;
+    @Autowired
+    private DistributorService distributorService;
+    public final Semaphore workerAvailable = new Semaphore(0);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(
-            Runtime.getRuntime().availableProcessors()
-    );
-    private final Semaphore workerAvailable = new Semaphore(0);
-    private final Map<Integer, Worker> workers = new ConcurrentHashMap<>();
-    private final AtomicInteger nextWorkerId = new AtomicInteger(0);
-
-    public MyGridClient(String host, int port, DistributorService distributorService) {
-        this.channel = ManagedChannelBuilder.forAddress(host, port)
+    public MyGridClient() {
+        this.channel = ManagedChannelBuilder
+                .forAddress("localhost", 8080)
                 .usePlaintext()
                 .build();
         this.blockingStub = GridServiceGrpc.newBlockingStub(channel);
         this.asyncStub = GridServiceGrpc.newStub(channel);
-        this.distributorService = distributorService;
     }
 
     public void await() throws InterruptedException {
@@ -105,7 +102,7 @@ public class MyGridClient {
                         .append("Стартовый номер комбинации для черных кругов: ").append(batch.getStartBlackCombination()).append("\n")
                         .append("Кол-во комбинаций для черных кругов: ").append(batch.getNumberBlackCombinations()).append("\n");
                 System.out.println(sb);
-                executeBatch(batch);
+                distributorService.trySendSubtask(batch);
             }
 
             @Override
@@ -120,7 +117,6 @@ public class MyGridClient {
                 latch.countDown();
             }
         });
-        //TODO подумать будет ли тут статичное кол-во вызовов или бахнуть while(true)
         Task task = distributorService.getTask(taskId);
         int totalBatches = task.getTotalBlackCombinations() * task.getTotalBlackCombinations() / 32;
         try {
@@ -136,40 +132,6 @@ public class MyGridClient {
         }
         requestObserver.onCompleted();
         latch.await();
-    }
-
-    public void registerWorker() {
-        int workerId = nextWorkerId.getAndIncrement();
-        Worker worker = new Worker(workerId);
-        workers.put(workerId, worker);
-        workerAvailable.release();
-    }
-
-    public void executeBatch(Batch batch) {
-        executor.submit(() -> {
-            Worker worker = findFreeWorker();
-            try {
-                worker.setBusy(true);
-                if (worker.getTask() == null || worker.getTask().getTaskId() != batch.getTaskId()) {
-                    worker.setTaskData(distributorService.getTask(batch.getTaskId()),
-                            distributorService.getJar(batch.getTaskId()));
-                }
-                List<Result> results = worker.executeBatch(batch);
-                addResults(batch.getTaskId(), results);
-            } catch (Exception e) {
-                System.err.println("Ошибка при выполнении батча " + batch.getBatchId() + ": " + e.getMessage());
-            } finally {
-                worker.setBusy(false);
-                workerAvailable.release();
-            }
-        });
-    }
-
-    private Worker findFreeWorker() {
-        for (Worker w : workers.values()) {
-            if (!w.isBusy()) return w;
-        }
-        return null;
     }
 
     public void addResults(int taskId, List<Result> results) {

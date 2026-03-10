@@ -1,4 +1,4 @@
-package ru.paramonova;
+package ru.paramonova.services;
 
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
@@ -160,4 +160,3 @@ public class MyGridService
         }
     }
 }
-

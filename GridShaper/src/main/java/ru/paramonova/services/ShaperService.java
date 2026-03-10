@@ -1,4 +1,4 @@
-package ru.paramonova;
+package ru.paramonova.services;
 
 import ru.paramonova.grpc.*;
 
