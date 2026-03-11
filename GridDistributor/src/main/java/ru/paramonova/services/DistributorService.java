@@ -3,7 +3,6 @@ package ru.paramonova.services;
 import com.google.protobuf.util.JsonFormat;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.paramonova.clients.MyGridClient;
 import ru.paramonova.dto.SolveRequest;
 import ru.paramonova.clients.WorkerClient;
 import ru.paramonova.models.WorkerInfo;

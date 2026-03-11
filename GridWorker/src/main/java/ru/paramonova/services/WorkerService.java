@@ -30,6 +30,7 @@ public class WorkerService {
     @Setter
     private int workerId;
     private final AtomicBoolean busy = new AtomicBoolean(false);
+    //TODO можно замутить список задач, что он уже решал когда-то
     private Integer taskId;
     private String taskData;
     private Class<?> calculatorClass;
@@ -109,6 +110,7 @@ public class WorkerService {
     }
 
     public void invokeMain(SolveRequest request) {
+        //TODO вот тут сделать адекватный парсинг для передачи параметров в мейн-метод
         Parameter[] parameters = mainMethod.getParameters();
         Object[] args = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
