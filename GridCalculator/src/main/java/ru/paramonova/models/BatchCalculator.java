@@ -3,7 +3,7 @@ package ru.paramonova.models;
 import ru.paramonova.annotations.Calculator;
 import ru.paramonova.annotations.Main;
 import ru.paramonova.annotations.Param;
-import ru.paramonova.grpc.*;
+import ru.paramonova.dto.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,15 +20,15 @@ public class BatchCalculator {
         int endB = startB + batch.getNumberBlackCombinations();
         int startW = batch.getStartWhiteCombination();
         int endW = startW + batch.getNumberWhiteCombinations();
-        int blackCirclesNumber = task.getBlackCirclesCount();
-        int whiteCirclesNumber = task.getWhiteCirclesCount();
+        int blackCirclesNumber = task.getBlackCircles().size();
+        int whiteCirclesNumber = task.getWhiteCircles().size();
         for (int i = startB; i < endB; i++) {
             for (int j = startW; j < endW; j++) {
                 List<Pipe> pipes = new ArrayList<>();
                 String positionBlack = numberToPositionCombination(4, blackCirclesNumber, i);
                 String positionWhite = numberToPositionCombination(8, whiteCirclesNumber, j);
-                pipes.addAll(createPipes(positionBlack, task.getBlackCirclesList()));
-                pipes.addAll(createPipes(positionWhite, task.getWhiteCirclesList()));
+                pipes.addAll(createPipes(positionBlack, task.getBlackCircles()));
+                pipes.addAll(createPipes(positionWhite, task.getWhiteCircles()));
                 results.add(calculateCombination(pipes));
             }
         }
@@ -37,9 +37,9 @@ public class BatchCalculator {
 
     private Result calculateCombination(List<Pipe> pipes) {
         //TODO вот тут должно быть адекватное решение для конкретной комбинации на возможность соединения труб линией
-        return Result.newBuilder()
-                .setIsConnected(false)
-                .addAllPipes(pipes)
+        return Result.builder()
+                .connected(false)
+                .pipes(pipes)
                 .build();
     }
 
@@ -48,11 +48,11 @@ public class BatchCalculator {
         for (int i = 0; i < circles.size(); i++) {
             Circle circle = circles.get(i);
             int position = Character.getNumericValue(positionCombination.charAt(i));
-            pipes.add(Pipe.newBuilder()
-                    .setX(circle.getX())
-                    .setY(circle.getY())
-                    .setColor(circle.getColor())
-                    .setPosition(position)
+            pipes.add(Pipe.builder()
+                    .x(circle.getX())
+                    .y(circle.getY())
+                    .color(circle.isColor())
+                    .position(position)
                     .build());
         }
         return pipes;

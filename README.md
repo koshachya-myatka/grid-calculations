@@ -1,4 +1,4 @@
-1. Собери заново jar-ники GridAnnotations, GridShaper, GridWorker
+1. Собери заново jar-ники GridAnnotations, GridCalculator, GridShaper, GridWorker
 2. Запусти GridShaper
 3. Запусти GridDistributor
 4. Запусти GridWorker из консоли в нужном кол-ве, меняя порты  

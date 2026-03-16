@@ -1,16 +1,15 @@
-package ru.paramonova;
+package ru.paramonova.grpc;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import ru.paramonova.clients.MyGridClient;
 
 import java.io.File;
 
 @Component
 @RequiredArgsConstructor
-public class ClientRunner implements CommandLineRunner {
-    private final MyGridClient client;
+public class GrpcClientRunner implements CommandLineRunner {
+    private final MyGrpcClient client;
 
     @Override
     public void run(String... args) throws Exception {
@@ -20,6 +19,7 @@ public class ClientRunner implements CommandLineRunner {
             client.registerTask(taskId);
             client.getTaskInfo(taskId);
             client.streamBatches(taskId);
+            //TODO проверить нужен ли await
         } finally {
             client.await();
         }

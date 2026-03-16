@@ -35,7 +35,7 @@ message Pipe {
 }
 
 message Result {
-    bool isConnected = 1;
+    bool connected = 1;
     repeated Pipe pipes = 2;
 }
 
@@ -67,11 +67,12 @@ message RegisterResponse {
 
 message ResultsRequest {
     int32 taskId = 1;
-    repeated Result results = 2;
+    int32 batchId = 2;
+    repeated Result results = 3;
 }
 
 message ResultsResponse {
-    bool isAccepted = 1;
+    bool accepted = 1;
 }
 
 service GridService {

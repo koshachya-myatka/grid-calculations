@@ -8,12 +8,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.paramonova.dto.SolveRequest;
 import ru.paramonova.services.WorkerService;
-import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequiredArgsConstructor
 public class WorkerController {
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private final WorkerService workerService;
 
     @PostMapping("/solveSubtask")

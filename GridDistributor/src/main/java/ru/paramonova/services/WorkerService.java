@@ -1,7 +1,7 @@
 package ru.paramonova.services;
 
 import org.springframework.stereotype.Service;
-import ru.paramonova.models.WorkerInfo;
+import ru.paramonova.dto.WorkerInfo;
 
 import java.util.Map;
 import java.util.Optional;

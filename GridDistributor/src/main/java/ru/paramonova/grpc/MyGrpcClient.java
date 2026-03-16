@@ -1,13 +1,15 @@
-package ru.paramonova.clients;
+package ru.paramonova.grpc;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.util.JsonFormat;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.paramonova.grpc.*;
 import ru.paramonova.services.DistributorService;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,15 +20,20 @@ import java.util.List;
 import java.util.concurrent.*;
 
 @Component
-public class MyGridClient {
+public class MyGrpcClient {
     private final ManagedChannel channel;
     private final GridServiceGrpc.GridServiceBlockingStub blockingStub;
     private final GridServiceGrpc.GridServiceStub asyncStub;
+
     @Autowired
     private DistributorService distributorService;
-    public final Semaphore workerAvailable = new Semaphore(0);
+    private final Semaphore workerAvailable = new Semaphore(0);
 
-    public MyGridClient() {
+    public void addFreeWorker() {
+        workerAvailable.release();
+    }
+
+    public MyGrpcClient() {
         this.channel = ManagedChannelBuilder
                 .forAddress("localhost", 8080)
                 .usePlaintext()
@@ -118,6 +125,7 @@ public class MyGridClient {
             }
         });
         Task task = distributorService.getTask(taskId);
+        //todo тут определить кол-во всех батчей
         int totalBatches = task.getTotalBlackCombinations() * task.getTotalBlackCombinations() / 32;
         try {
             for (int i = 0; i < totalBatches; i++) {
@@ -134,12 +142,26 @@ public class MyGridClient {
         latch.await();
     }
 
-    public void addResults(int taskId, List<Result> results) {
+    public void addResults(int taskId, int subtaskId, String resultsJson) {
+        List<Result> results = new ArrayList<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode array = mapper.readTree(resultsJson);
+            for (JsonNode node : array) {
+                Result.Builder builder = Result.newBuilder();
+                JsonFormat.parser().merge(node.toString(), builder);
+                results.add(builder.build());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        distributorService.addResults(taskId, results);
         ResultsRequest req = ResultsRequest.newBuilder()
                 .setTaskId(taskId)
+                .setBatchId(subtaskId)
                 .addAllResults(results)
                 .build();
         ResultsResponse resp = blockingStub.addResults(req);
-        System.out.println("Сервер ответил на addResult " + resp.getIsAccepted() + " для задачи " + taskId);
+        System.out.println("Сервер ответил на addResult " + resp.getAccepted() + " для задачи " + taskId);
     }
 }

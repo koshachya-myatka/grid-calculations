@@ -1,8 +1,8 @@
-package ru.paramonova.services;
+package ru.paramonova.grpc;
 
 import com.google.protobuf.ByteString;
 import io.grpc.stub.StreamObserver;
-import ru.paramonova.grpc.*;
+import ru.paramonova.services.ShaperService;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -10,12 +10,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MyGridService
-        extends GridServiceGrpc.GridServiceImplBase {
+public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
     private final ShaperService shaperService;
     private final ConcurrentHashMap<Integer, StreamObserver<BatchResponse>> activeStreams = new ConcurrentHashMap<>();
 
-    public MyGridService(ShaperService shaperService) {
+    public MyGrpcService(ShaperService shaperService) {
         this.shaperService = shaperService;
     }
 
@@ -52,7 +51,7 @@ public class MyGridService
         }
         try {
             String pathToParent = new File(System.getProperty("user.dir")).getParent();
-            Path jarPath = Paths.get(pathToParent + "\\GridShaper\\libs\\GridShaper-1.0.jar");
+            Path jarPath = Paths.get(pathToParent + "\\GridCalculator\\libs\\GridCalculator-1.0.jar");
             byte[] jarBytes = Files.readAllBytes(jarPath);
             RegisterResponse response = RegisterResponse.newBuilder()
                     .setTask(task)
@@ -63,29 +62,29 @@ public class MyGridService
             System.out.println("Задача " + request.getTaskId() + " зарегистрирована в распределителе");
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription("Ошибка при генерации jar и регистрации задачи: " + e.getMessage())
+                    .withDescription("Ошибка при нахождении jar и регистрации задачи " + taskId + ":\n" + e.getMessage())
                     .asRuntimeException());
         }
     }
 
     @Override
     public void getTaskInfo(TaskRequest request, StreamObserver<TaskResponse> responseObserver) {
+        int taskId = request.getTaskId();
+        Task task = shaperService.getTask(taskId);
+        if (task == null) {
+            responseObserver.onError(io.grpc.Status.NOT_FOUND
+                    .withDescription("Задача " + taskId + " не найдена")
+                    .asRuntimeException());
+            return;
+        }
         try {
-            int taskId = request.getTaskId();
-            Task task = shaperService.getTask(taskId);
-            if (task == null) {
-                responseObserver.onError(io.grpc.Status.NOT_FOUND
-                        .withDescription("Задача " + taskId + " не найдена")
-                        .asRuntimeException());
-                return;
-            }
             TaskResponse.Builder responseBuilder = TaskResponse.newBuilder()
                     .setTask(task);
             responseObserver.onNext(responseBuilder.build());
             responseObserver.onCompleted();
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription("Ошибка при получении информации: " + e.getMessage())
+                    .withDescription("Ошибка при получении информации " + taskId + ":\n" + e.getMessage())
                     .asRuntimeException());
         }
     }
@@ -137,6 +136,7 @@ public class MyGridService
                     activeStreams.remove(currentTaskId);
                 }
                 System.out.println("Результат для задачи " + currentTaskId + ":\n");
+                //todo тут оформить возврат именно нужного значения
                 shaperService.getResult(currentTaskId);
                 responseObserver.onCompleted();
             }
@@ -145,11 +145,18 @@ public class MyGridService
 
     @Override
     public void addResults(ResultsRequest request, StreamObserver<ResultsResponse> responseObserver) {
+        int taskId = request.getTaskId();
+        Task task = shaperService.getTask(taskId);
+        if (task == null) {
+            responseObserver.onError(io.grpc.Status.NOT_FOUND
+                    .withDescription("Задача " + taskId + " не найдена")
+                    .asRuntimeException());
+            return;
+        }
         try {
-            int taskId = request.getTaskId();
             shaperService.addResults(taskId, request.getResultsList());
             ResultsResponse response = ResultsResponse.newBuilder()
-                    .setIsAccepted(true)
+                    .setAccepted(true)
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();

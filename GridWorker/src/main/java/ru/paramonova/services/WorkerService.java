@@ -1,7 +1,5 @@
 package ru.paramonova.services;
 
-import com.google.protobuf.Message;
-import com.google.protobuf.util.JsonFormat;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -10,7 +8,9 @@ import ru.paramonova.annotations.Main;
 import ru.paramonova.annotations.Param;
 import ru.paramonova.dto.ResultRequest;
 import ru.paramonova.dto.SolveRequest;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -52,7 +52,7 @@ public class WorkerService {
             }
             invokeMain(request);
         } catch (Exception e) {
-            throw new RuntimeException("Не удалось выполнить подзадачу");
+            throw new RuntimeException("Не удалось выполнить подзадачу", e);
         }
     }
 
@@ -91,7 +91,7 @@ public class WorkerService {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Произошла какая-то проблема при поиске класса");
+            throw new RuntimeException("Произошла какая-то проблема при поиске класса", e);
         }
         throw new RuntimeException("Класс с аннотацией @Calculator не найден в jar");
     }
@@ -110,29 +110,27 @@ public class WorkerService {
     }
 
     public void invokeMain(SolveRequest request) {
-        //TODO вот тут сделать адекватный парсинг для передачи параметров в мейн-метод
+        System.out.println("Запускаем метод @Main");
+        ObjectNode root = objectMapper.createObjectNode();
+        root.set("task", objectMapper.readTree(taskData));
+        root.set("batch", objectMapper.readTree(request.getJsonSubtaskData()));
         Parameter[] parameters = mainMethod.getParameters();
         Object[] args = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
             Param annotation = parameter.getAnnotation(Param.class);
+            if (annotation == null) {
+                throw new RuntimeException("@Param отсутствует у параметра");
+            }
             String name = annotation.value();
             Class<?> type = parameter.getType();
-            String json;
-            if (name.equals("task")) {
-                json = taskData;
-            } else {
-                json = request.getJsonSubtaskData();
+            JsonNode node = root.get(name);
+            if (node == null) {
+                throw new RuntimeException("В JSON нет параметра " + name);
             }
-            try {
-                Message.Builder builder = (Message.Builder) type.getMethod("newBuilder").invoke(null);
-                JsonFormat.parser().merge(json, builder);
-                args[i] = builder.build();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            args[i] = objectMapper.treeToValue(node, type);
         }
-        Object result = null;
+        Object result;
         try {
             result = mainMethod.invoke(calculatorInstance, args);
             sendResult(request, result);
@@ -142,6 +140,10 @@ public class WorkerService {
     }
 
     private void sendResult(SolveRequest request, Object result) {
+        if (result == null) {
+            throw new RuntimeException("@Calculator вернул null результат");
+        }
+        System.out.println("Отправляем результат для подзадачи " + request.getSubtaskId() + " задачи " + taskId);
         ResultRequest resultRequest = ResultRequest.builder()
                 .workerId(workerId)
                 .taskId(taskId)
@@ -154,5 +156,6 @@ public class WorkerService {
                 resultRequest,
                 Void.class
         );
+        unlock();
     }
 }

@@ -110,6 +110,7 @@ public class ShaperService {
         int startWhiteCombination = batchStartsWhite.get(taskId);
         int startBlackCombination = batchStartsBlack.get(taskId);
         if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
+            //TODO добавить закольцовывание, когда мы сгенерили все возможные батчи, пока все батчи из списка не пропадут
             return null;
         }
         int batchId = nextBatchId.getAndIncrement();
@@ -134,6 +135,7 @@ public class ShaperService {
     }
 
     public void addResults(int taskId, List<Result> newResults) {
+        //TODO добавить удаление батча из списка батчей задачи
         List<Result> currentResults = results.get(taskId);
         currentResults.addAll(newResults);
         System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId);

@@ -1,4 +1,4 @@
-package ru.paramonova.models;
+package ru.paramonova.dto;
 
 import lombok.*;
 

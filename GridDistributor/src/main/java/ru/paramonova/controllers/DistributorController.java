@@ -1,33 +1,24 @@
 package ru.paramonova.controllers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import ru.paramonova.clients.MyGridClient;
+import ru.paramonova.grpc.MyGrpcClient;
 import ru.paramonova.dto.ResultRequest;
-import ru.paramonova.grpc.Result;
-import ru.paramonova.services.DistributorService;
 import ru.paramonova.services.WorkerService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 public class DistributorController {
+    private final MyGrpcClient gridClient;
     private final WorkerService workerService;
-    private final DistributorService distributorService;
-    private final MyGridClient gridClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostMapping("/workers")
     public ResponseEntity<Integer> registerWorker(@RequestBody String workerAddress) {
         int workerId = workerService.registerWorker(workerAddress);
-//        distributorService.trySendSubtask();
-        gridClient.workerAvailable.release();
+        gridClient.addFreeWorker();
         return ResponseEntity.ok(workerId);
     }
 
@@ -35,16 +26,11 @@ public class DistributorController {
     public void receiveResults(@RequestBody ResultRequest request) {
         try {
             System.out.println("Получены результаты подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId());
-            List<Result> results = objectMapper.readValue(request.getJsonResult(),
-                    new TypeReference<List<Result>>() {
-                    });
-            distributorService.addResults(request.getTaskId(), results);
-            gridClient.addResults(request.getTaskId(), results);
+            gridClient.addResults(request.getTaskId(), request.getSubtaskId(), request.getJsonResult());
         } catch (Exception e) {
-            throw new RuntimeException("Ошибка обработки результатов для подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId());
+            throw new RuntimeException("Ошибка обработки результатов для подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId(), e);
         }
         workerService.releaseWorker(request.getWorkerId());
-        gridClient.workerAvailable.release();
-//        distributorService.trySendSubtask();
+        gridClient.addFreeWorker();
     }
 }
