@@ -1,7 +1,6 @@
 package ru.paramonova.controllers;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,10 +14,7 @@ public class WorkerController {
     private final WorkerService workerService;
 
     @PostMapping("/solveSubtask")
-    public ResponseEntity<?> solveSubtask(@RequestBody SolveRequest request) {
-        if (!workerService.tryLock()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
+    public ResponseEntity<Void> solveSubtask(@RequestBody SolveRequest request) {
         workerService.solveSubtask(request);
         return ResponseEntity.ok().build();
     }

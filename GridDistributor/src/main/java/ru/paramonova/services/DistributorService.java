@@ -2,6 +2,7 @@ package ru.paramonova.services;
 
 import com.google.protobuf.util.JsonFormat;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import ru.paramonova.dto.SolveRequest;
@@ -73,6 +74,10 @@ public class DistributorService {
         RestTemplate restTemplate = new RestTemplate();
         String url = worker.getAddress() + "/solveSubtask";
         restTemplate.postForEntity(url, request, Void.class);
+        //todo сделать удаление воркера при его отвале
+//        if () {
+//            workerService.removeWorker(worker.getWorkerId());
+//        }
     }
 
     public void addResults(int taskId, List<Result> newResults) {

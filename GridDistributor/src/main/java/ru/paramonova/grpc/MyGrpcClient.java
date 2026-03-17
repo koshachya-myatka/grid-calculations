@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class MyGrpcClient {
@@ -40,10 +41,6 @@ public class MyGrpcClient {
                 .build();
         this.blockingStub = GridServiceGrpc.newBlockingStub(channel);
         this.asyncStub = GridServiceGrpc.newStub(channel);
-    }
-
-    public void await() throws InterruptedException {
-        channel.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
     }
 
     public int addTask(String filePath) throws IOException {
@@ -92,7 +89,8 @@ public class MyGrpcClient {
     }
 
     public void streamBatches(int taskId) throws InterruptedException {
-        CountDownLatch latch = new CountDownLatch(1);
+        AtomicBoolean streamFinished = new AtomicBoolean(false);
+
         StreamObserver<TaskRequest> requestObserver = asyncStub.getNextBatch(new StreamObserver<BatchResponse>() {
             private int receivedCount = 0;
 
@@ -115,30 +113,34 @@ public class MyGrpcClient {
             @Override
             public void onError(Throwable t) {
                 System.out.println("Ошибка в стриме: " + t.getMessage());
-                latch.countDown();
+                addFreeWorker();
             }
 
             @Override
             public void onCompleted() {
-                System.out.println("Стрим завершен. Получено батчей: " + receivedCount + "\n");
-                latch.countDown();
+                System.out.println("Стрим задачи " + taskId + " завершен. Получено батчей: " + receivedCount + "\n");
+                streamFinished.set(true);
+                addFreeWorker();
             }
         });
-        Task task = distributorService.getTask(taskId);
-        int totalBatches = task.getTotalBlackCombinations() * task.getTotalBlackCombinations();
-        try {
-            for (int i = 0; i < totalBatches; i++) {
-                workerAvailable.acquire();
-                TaskRequest request = TaskRequest.newBuilder()
-                        .setTaskId(taskId)
-                        .build();
-                requestObserver.onNext(request);
+
+        new Thread(() -> {
+            try {
+                while (!streamFinished.get()) {
+                    if (streamFinished.get()) {
+                        break;
+                    }
+                    workerAvailable.acquire();
+                    TaskRequest request = TaskRequest.newBuilder()
+                            .setTaskId(taskId)
+                            .build();
+                    requestObserver.onNext(request);
+                }
+                addFreeWorker();
+            } catch (Exception e) {
+                requestObserver.onError(e);
             }
-        } catch (Exception e) {
-            requestObserver.onError(e);
-        }
-        requestObserver.onCompleted();
-        latch.await();
+        }).start();
     }
 
     public void addResults(int taskId, int subtaskId, String resultsJson) {

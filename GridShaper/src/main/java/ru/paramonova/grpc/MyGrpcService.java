@@ -109,6 +109,9 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                     Batch batch = shaperService.getNextBatch(taskId);
                     if (batch == null) {
                         responseObserver.onCompleted();
+                        System.out.println("Результат для задачи " + currentTaskId + ":");
+                        //todo тут оформить возврат именно нужного значения и определить когда это стоит вызывать
+                        shaperService.getResult(currentTaskId);
                         return;
                     }
                     BatchResponse.Builder responseBuilder = BatchResponse.newBuilder()
@@ -131,13 +134,11 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
 
             @Override
             public void onCompleted() {
-                System.out.println("Стрим для задачи " + currentTaskId + " завершен\n");
+                //todo эту штуку запустить тут вручную, потому что на клиенте она уже
+                // не запустится, т.к. сервер тормозит стрим
                 if (currentTaskId != -1) {
                     activeStreams.remove(currentTaskId);
                 }
-                System.out.println("Результат для задачи " + currentTaskId + ":\n");
-                //todo тут оформить возврат именно нужного значения
-                shaperService.getResult(currentTaskId);
                 responseObserver.onCompleted();
             }
         };

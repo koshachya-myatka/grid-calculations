@@ -35,4 +35,8 @@ public class WorkerService {
             worker.getBusy().set(false);
         }
     }
+
+    public void removeWorker(int id) {
+        workers.remove(id);
+    }
 }

@@ -15,6 +15,21 @@ public class DistributorController {
     private final MyGrpcClient gridClient;
     private final WorkerService workerService;
 
+    @PostMapping("/tasks")
+    public ResponseEntity<String> addTask(@RequestBody String pathToFile) {
+        new Thread(() -> {
+            try {
+                int taskId = gridClient.addTask(pathToFile);
+                gridClient.registerTask(taskId);
+                gridClient.getTaskInfo(taskId);
+                gridClient.streamBatches(taskId);
+            } catch (Exception e) {
+                throw new RuntimeException("Не удалось добавить задачу из файла" + pathToFile + "\n", e);
+            }
+        }).start();
+        return ResponseEntity.ok("Задача принята");
+    }
+
     @PostMapping("/workers")
     public ResponseEntity<Integer> registerWorker(@RequestBody String workerAddress) {
         int workerId = workerService.registerWorker(workerAddress);
@@ -23,7 +38,7 @@ public class DistributorController {
     }
 
     @PostMapping("/results")
-    public void receiveResults(@RequestBody ResultRequest request) {
+    public void addResults(@RequestBody ResultRequest request) {
         try {
             System.out.println("Получены результаты подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId() + "\n");
             gridClient.addResults(request.getTaskId(), request.getSubtaskId(), request.getJsonResult());

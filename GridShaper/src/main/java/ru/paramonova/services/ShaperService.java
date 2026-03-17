@@ -112,9 +112,9 @@ public class ShaperService {
         if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
             //TODO добавить более адекватное закольцовывание, когда мы сгенерили все возможные батчи,
             // но у нас появился новый свободный воркер ?
-            if (batches.get(taskId) != null && !batches.get(taskId).isEmpty()) {
-                return batches.get(taskId).getFirst();
-            }
+//            if (batches.get(taskId) != null && !batches.get(taskId).isEmpty()) {
+//                return batches.get(taskId).getFirst();
+//            }
             return null;
         }
         int batchId = nextBatchId.getAndIncrement();
