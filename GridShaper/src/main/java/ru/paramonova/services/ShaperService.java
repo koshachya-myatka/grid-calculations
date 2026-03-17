@@ -48,7 +48,7 @@ public class ShaperService {
             if ((line = reader.readLine()) != null) {
                 String[] fieldSize = line.split(",");
                 if (fieldSize.length != 2) {
-                    throw new IllegalArgumentException("Неверный формат строки с размерами поля");
+                    throw new IllegalArgumentException("Неверный формат строки с размерами поля\n");
                 }
                 fieldWidth = Integer.parseInt(fieldSize[0].trim());
                 fieldLength = Integer.parseInt(fieldSize[1].trim());
@@ -61,14 +61,14 @@ public class ShaperService {
                 }
                 String[] values = line.split(",");
                 if (values.length != 3) {
-                    throw new IllegalArgumentException("Неверный формат строки с описанием круга " + line);
+                    throw new IllegalArgumentException("Неверный формат строки с описанием круга " + line + "\n");
                 }
                 int x = Integer.parseInt(values[0].trim());
                 int y = Integer.parseInt(values[1].trim());
                 boolean color = "1".equals(values[2].trim());
                 if (x < 0 || x >= fieldWidth || y < 0 || y >= fieldLength) {
                     throw new IllegalArgumentException(
-                            String.format("Круг с координатами (%d, %d) выходит за пределы поля", x, y)
+                            String.format("Круг с координатами (%d, %d) выходит за пределы поля\n", x, y)
                     );
                 }
                 Circle circle = Circle.newBuilder()
@@ -83,7 +83,7 @@ public class ShaperService {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Ошибка при чтении файла: " + fileName);
+            throw new RuntimeException("Ошибка при чтении файла: " + fileName + "\n");
         }
         return Task.newBuilder()
                 .setTaskId(taskId)
@@ -110,7 +110,11 @@ public class ShaperService {
         int startWhiteCombination = batchStartsWhite.get(taskId);
         int startBlackCombination = batchStartsBlack.get(taskId);
         if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
-            //TODO добавить закольцовывание, когда мы сгенерили все возможные батчи, пока все батчи из списка не пропадут
+            //TODO добавить более адекватное закольцовывание, когда мы сгенерили все возможные батчи,
+            // но у нас появился новый свободный воркер ?
+            if (batches.get(taskId) != null && !batches.get(taskId).isEmpty()) {
+                return batches.get(taskId).getFirst();
+            }
             return null;
         }
         int batchId = nextBatchId.getAndIncrement();
@@ -134,14 +138,20 @@ public class ShaperService {
         return batch;
     }
 
-    public void addResults(int taskId, List<Result> newResults) {
-        //TODO добавить удаление батча из списка батчей задачи
+    public void addResults(int taskId, int batchId, List<Result> newResults) {
+        if (results.get(taskId) == null) {
+            throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
+        }
         List<Result> currentResults = results.get(taskId);
         currentResults.addAll(newResults);
-        System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId);
+        System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId + "\n");
+        batches.get(taskId).removeIf(batch -> batch.getBatchId() == batchId);
     }
 
     public Result getResult(int taskId) {
+        if (batches.get(taskId) != null && batches.get(taskId).isEmpty()) {
+            batches.remove(taskId);
+        }
         //TODO здесь будет выбираться итоговый результат вместо первого
         System.out.println("Всего результатов: " + results.get(taskId).size());
         return results.get(taskId).getFirst();

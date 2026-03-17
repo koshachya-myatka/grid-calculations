@@ -21,7 +21,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
     @Override
     public void addTask(FileRequest request, StreamObserver<TaskIdResponse> responseObserver) {
         try {
-            System.out.println("Получен запрос на добавление задачи с файлом: " + request.getFileName());
+            System.out.println("Получен запрос на добавление задачи из файла: " + request.getFileName());
             Task task = shaperService.addTask(
                     request.getFileName(),
                     request.getFileData().toByteArray()
@@ -31,7 +31,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
-            System.out.printf("Задача %d создана%n", task.getTaskId());
+            System.out.printf("Задача %d создана%n%n", task.getTaskId());
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
                     .withDescription("Ошибка при создании задачи: " + e.getMessage())
@@ -45,7 +45,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
         Task task = shaperService.getTask(taskId);
         if (task == null) {
             responseObserver.onError(io.grpc.Status.NOT_FOUND
-                    .withDescription("Задача " + taskId + " не найдена")
+                    .withDescription("Задача " + taskId + " не найдена\n")
                     .asRuntimeException());
             return;
         }
@@ -59,7 +59,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
-            System.out.println("Задача " + request.getTaskId() + " зарегистрирована в распределителе");
+            System.out.println("Задача " + request.getTaskId() + " зарегистрирована в распределителе\n");
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
                     .withDescription("Ошибка при нахождении jar и регистрации задачи " + taskId + ":\n" + e.getMessage())
@@ -73,7 +73,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
         Task task = shaperService.getTask(taskId);
         if (task == null) {
             responseObserver.onError(io.grpc.Status.NOT_FOUND
-                    .withDescription("Задача " + taskId + " не найдена")
+                    .withDescription("Задача " + taskId + " не найдена\n")
                     .asRuntimeException());
             return;
         }
@@ -84,7 +84,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
             responseObserver.onCompleted();
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
-                    .withDescription("Ошибка при получении информации " + taskId + ":\n" + e.getMessage())
+                    .withDescription("Ошибка при получении информации задачи " + taskId + ":\n" + e.getMessage())
                     .asRuntimeException());
         }
     }
@@ -102,7 +102,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                     Task task = shaperService.getTask(taskId);
                     if (task == null) {
                         responseObserver.onError(io.grpc.Status.NOT_FOUND
-                                .withDescription("Задача " + taskId + " не найдена")
+                                .withDescription("Задача " + taskId + " не найдена\n")
                                 .asRuntimeException());
                         return;
                     }
@@ -131,7 +131,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
 
             @Override
             public void onCompleted() {
-                System.out.println("Стрим для задачи " + currentTaskId + " завершен");
+                System.out.println("Стрим для задачи " + currentTaskId + " завершен\n");
                 if (currentTaskId != -1) {
                     activeStreams.remove(currentTaskId);
                 }
@@ -149,12 +149,12 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
         Task task = shaperService.getTask(taskId);
         if (task == null) {
             responseObserver.onError(io.grpc.Status.NOT_FOUND
-                    .withDescription("Задача " + taskId + " не найдена")
+                    .withDescription("Задача " + taskId + " не найдена\n")
                     .asRuntimeException());
             return;
         }
         try {
-            shaperService.addResults(taskId, request.getResultsList());
+            shaperService.addResults(taskId, request.getBatchId(), request.getResultsList());
             ResultsResponse response = ResultsResponse.newBuilder()
                     .setAccepted(true)
                     .build();

@@ -45,8 +45,9 @@ public class DistributorService {
         WorkerInfo worker = workerOptional.get();
         try {
             Task task = tasks.get(batch.getTaskId());
-            boolean needTaskData = worker.getTaskId() == null || !worker.getTaskId().equals(batch.getTaskId());
-            String subtaskJson = JsonFormat.printer().print(batch);
+            boolean needTaskData = worker.getTasksIds().isEmpty() || !worker.getTasksIds().contains(task.getTaskId());
+            JsonFormat.Printer printer = JsonFormat.printer().includingDefaultValueFields();
+            String subtaskJson = printer.print(batch);
             String resultSubtaskJson = String.format("{\"batch\":%s}", subtaskJson);
             SolveRequest request = SolveRequest.builder()
                     .taskId(task.getTaskId())
@@ -55,11 +56,11 @@ public class DistributorService {
                     .distributorAddress("http://localhost:8081")
                     .build();
             if (needTaskData) {
-                String taskJson = JsonFormat.printer().print(task);
+                String taskJson = printer.print(task);
                 String resultTaskJson = String.format("{\"task\":%s}", taskJson);
                 request.setJarCalculator(jars.get(task.getTaskId()));
                 request.setJsonTaskData(resultTaskJson);
-                worker.setTaskId(task.getTaskId());
+                worker.addTaskId(task.getTaskId());
             }
             sendSubtask(worker, request);
         } catch (Exception e) {
@@ -77,9 +78,9 @@ public class DistributorService {
     public void addResults(int taskId, List<Result> newResults) {
         List<Result> current = results.get(taskId);
         if (current == null) {
-            throw new RuntimeException("Результаты для задачи " + taskId + " не были найдены");
+            throw new RuntimeException("Результаты для задачи " + taskId + " не были найдены\n");
         }
         current.addAll(newResults);
-        System.out.println("Распределитель получил " + newResults.size() + " результатов задачи " + taskId);
+        System.out.println("Распределитель сохранил " + newResults.size() + " результатов задачи " + taskId + "\n");
     }
 }

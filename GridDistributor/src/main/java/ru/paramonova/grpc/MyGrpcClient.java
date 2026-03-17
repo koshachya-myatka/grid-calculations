@@ -55,7 +55,7 @@ public class MyGrpcClient {
                 .setFileData(ByteString.copyFrom(fileData))
                 .build();
         TaskIdResponse response = blockingStub.addTask(request);
-        System.out.println("Задача " + response.getTaskId() + " создана");
+        System.out.println("Задача " + response.getTaskId() + " создана\n");
         return response.getTaskId();
     }
 
@@ -120,13 +120,12 @@ public class MyGrpcClient {
 
             @Override
             public void onCompleted() {
-                System.out.println("Стрим завершен. Получено батчей: " + receivedCount);
+                System.out.println("Стрим завершен. Получено батчей: " + receivedCount + "\n");
                 latch.countDown();
             }
         });
         Task task = distributorService.getTask(taskId);
-        //todo тут определить кол-во всех батчей
-        int totalBatches = task.getTotalBlackCombinations() * task.getTotalBlackCombinations() / 32;
+        int totalBatches = task.getTotalBlackCombinations() * task.getTotalBlackCombinations();
         try {
             for (int i = 0; i < totalBatches; i++) {
                 workerAvailable.acquire();
@@ -162,6 +161,6 @@ public class MyGrpcClient {
                 .addAllResults(results)
                 .build();
         ResultsResponse resp = blockingStub.addResults(req);
-        System.out.println("Сервер ответил на addResult " + resp.getAccepted() + " для задачи " + taskId);
+        System.out.println("Формирователь ответил на addResult " + resp.getAccepted() + " для задачи " + taskId + "\n");
     }
 }

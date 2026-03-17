@@ -25,7 +25,7 @@ public class DistributorController {
     @PostMapping("/results")
     public void receiveResults(@RequestBody ResultRequest request) {
         try {
-            System.out.println("Получены результаты подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId());
+            System.out.println("Получены результаты подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId() + "\n");
             gridClient.addResults(request.getTaskId(), request.getSubtaskId(), request.getJsonResult());
         } catch (Exception e) {
             throw new RuntimeException("Ошибка обработки результатов для подзадачи " + request.getSubtaskId() + " задачи " + request.getTaskId(), e);
