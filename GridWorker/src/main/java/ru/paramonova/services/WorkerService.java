@@ -1,5 +1,6 @@
 package ru.paramonova.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.Setter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -8,9 +9,9 @@ import ru.paramonova.annotations.Main;
 import ru.paramonova.annotations.Param;
 import ru.paramonova.dto.ResultRequest;
 import ru.paramonova.dto.SolveRequest;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -111,27 +112,31 @@ public class WorkerService {
 
     public void invokeMain(SolveRequest request) {
         System.out.println("Запускаем метод @Main");
-        ObjectNode root = objectMapper.createObjectNode();
-        root.set("task", objectMapper.readTree(taskData));
-        root.set("batch", objectMapper.readTree(request.getJsonSubtaskData()));
-        Parameter[] parameters = mainMethod.getParameters();
-        Object[] args = new Object[parameters.length];
-        for (int i = 0; i < parameters.length; i++) {
-            Parameter parameter = parameters[i];
-            Param annotation = parameter.getAnnotation(Param.class);
-            if (annotation == null) {
-                throw new RuntimeException("@Param отсутствует у параметра");
-            }
-            String name = annotation.value();
-            Class<?> type = parameter.getType();
-            JsonNode node = root.get(name);
-            if (node == null) {
-                throw new RuntimeException("В JSON нет параметра " + name);
-            }
-            args[i] = objectMapper.treeToValue(node, type);
-        }
-        Object result;
         try {
+            // соединяем json-нки в кучу
+            ObjectNode commonJson = objectMapper.createObjectNode();
+            JsonNode taskNode = objectMapper.readTree(taskData);
+            JsonNode batchNode = objectMapper.readTree(request.getJsonSubtaskData());
+            commonJson.setAll((ObjectNode) taskNode);
+            commonJson.setAll((ObjectNode) batchNode);
+            // запускаем метод
+            Parameter[] parameters = mainMethod.getParameters();
+            Object[] args = new Object[parameters.length];
+            for (int i = 0; i < parameters.length; i++) {
+                Parameter parameter = parameters[i];
+                Param annotation = parameter.getAnnotation(Param.class);
+                if (annotation == null) {
+                    throw new RuntimeException("@Param отсутствует у параметра");
+                }
+                String name = annotation.value();
+                Class<?> type = parameter.getType();
+                JsonNode node = commonJson.get(name);
+                if (node == null) {
+                    throw new RuntimeException("В JSON нет параметра " + name);
+                }
+                args[i] = objectMapper.treeToValue(node, type);
+            }
+            Object result;
             result = mainMethod.invoke(calculatorInstance, args);
             sendResult(request, result);
         } catch (Exception e) {
@@ -144,12 +149,17 @@ public class WorkerService {
             throw new RuntimeException("@Calculator вернул null результат");
         }
         System.out.println("Отправляем результат для подзадачи " + request.getSubtaskId() + " задачи " + taskId);
-        ResultRequest resultRequest = ResultRequest.builder()
-                .workerId(workerId)
-                .taskId(taskId)
-                .subtaskId(request.getSubtaskId())
-                .jsonResult(objectMapper.writeValueAsString(result))
-                .build();
+        ResultRequest resultRequest = null;
+        try {
+            resultRequest = ResultRequest.builder()
+                    .workerId(workerId)
+                    .taskId(taskId)
+                    .subtaskId(request.getSubtaskId())
+                    .jsonResult(objectMapper.writeValueAsString(result))
+                    .build();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Не удалось преобразовать Json в строку", e);
+        }
         RestTemplate rest = new RestTemplate();
         rest.postForEntity(
                 request.getDistributorAddress() + "/results",

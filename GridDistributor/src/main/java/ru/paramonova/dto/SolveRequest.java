@@ -7,6 +7,7 @@ import lombok.*;
 @Getter
 @Setter
 @Builder
+@ToString
 public class SolveRequest {
     int taskId;
     int subtaskId;

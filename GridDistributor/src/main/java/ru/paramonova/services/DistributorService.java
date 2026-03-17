@@ -46,15 +46,19 @@ public class DistributorService {
         try {
             Task task = tasks.get(batch.getTaskId());
             boolean needTaskData = worker.getTaskId() == null || !worker.getTaskId().equals(batch.getTaskId());
+            String subtaskJson = JsonFormat.printer().print(batch);
+            String resultSubtaskJson = String.format("{\"batch\":%s}", subtaskJson);
             SolveRequest request = SolveRequest.builder()
                     .taskId(task.getTaskId())
                     .subtaskId(batch.getBatchId())
-                    .jsonSubtaskData(JsonFormat.printer().print(batch))
+                    .jsonSubtaskData(resultSubtaskJson)
                     .distributorAddress("http://localhost:8081")
                     .build();
             if (needTaskData) {
+                String taskJson = JsonFormat.printer().print(task);
+                String resultTaskJson = String.format("{\"task\":%s}", taskJson);
                 request.setJarCalculator(jars.get(task.getTaskId()));
-                request.setJsonTaskData(JsonFormat.printer().print(task));
+                request.setJsonTaskData(resultTaskJson);
                 worker.setTaskId(task.getTaskId());
             }
             sendSubtask(worker, request);

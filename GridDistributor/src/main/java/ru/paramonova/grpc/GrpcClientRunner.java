@@ -19,7 +19,6 @@ public class GrpcClientRunner implements CommandLineRunner {
             client.registerTask(taskId);
             client.getTaskInfo(taskId);
             client.streamBatches(taskId);
-            //TODO проверить нужен ли await
         } finally {
             client.await();
         }
