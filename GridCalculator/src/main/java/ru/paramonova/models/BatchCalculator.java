@@ -25,8 +25,8 @@ public class BatchCalculator {
         for (int i = startB; i < endB; i++) {
             for (int j = startW; j < endW; j++) {
                 List<Pipe> pipes = new ArrayList<>();
-                String positionBlack = numberToPositionCombination(4, blackCirclesNumber, i);
-                String positionWhite = numberToPositionCombination(8, whiteCirclesNumber, j);
+                List<Integer> positionBlack = numberToPositionCombination(4, blackCirclesNumber, i);
+                List<Integer> positionWhite = numberToPositionCombination(12, whiteCirclesNumber, j);
                 pipes.addAll(createPipes(positionBlack, task.getBlackCircles()));
                 pipes.addAll(createPipes(positionWhite, task.getWhiteCircles()));
                 results.add(calculateCombination(pipes));
@@ -43,11 +43,11 @@ public class BatchCalculator {
                 .build();
     }
 
-    private List<Pipe> createPipes(String positionCombination, List<Circle> circles) {
+    private List<Pipe> createPipes(List<Integer> positionCombination, List<Circle> circles) {
         List<Pipe> pipes = new ArrayList<>();
         for (int i = 0; i < circles.size(); i++) {
             Circle circle = circles.get(i);
-            int position = Character.getNumericValue(positionCombination.charAt(i));
+            int position = positionCombination.get(i);
             pipes.add(Pipe.builder()
                     .x(circle.getX())
                     .y(circle.getY())
@@ -58,15 +58,15 @@ public class BatchCalculator {
         return pipes;
     }
 
-    private String numberToPositionCombination(int alphabetLength, int circlesNumber, int number) {
-        StringBuilder builder = new StringBuilder();
+    private List<Integer> numberToPositionCombination(int alphabetLength, int circlesNumber, int number) {
+        List<Integer> pipePositions = new ArrayList<>();
         while (number > 0) {
-            builder.append(number % alphabetLength);
+            pipePositions.add(number % alphabetLength);
             number /= alphabetLength;
         }
-        while (builder.length() < circlesNumber) {
-            builder.append("0");
+        while (pipePositions.size() < circlesNumber) {
+            pipePositions.add(0);
         }
-        return new StringBuilder(builder).reverse().toString();
+        return pipePositions.reversed();
     }
 }

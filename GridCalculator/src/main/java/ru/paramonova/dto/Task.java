@@ -9,6 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@ToString
 public class Task {
     int taskId;
     int fieldWidth;

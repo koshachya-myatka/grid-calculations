@@ -9,6 +9,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
+@ToString
 public class Result {
     boolean connected;
     List<Pipe> pipes;

@@ -89,7 +89,7 @@ public class ShaperService {
                 .setTaskId(taskId)
                 .setFieldWidth(fieldWidth)
                 .setFieldLength(fieldLength)
-                .setTotalWhiteCombinations((int) Math.pow(8, whiteCircles.size()))
+                .setTotalWhiteCombinations((int) Math.pow(12, whiteCircles.size()))
                 .setTotalBlackCombinations((int) Math.pow(4, blackCircles.size()))
                 .addAllWhiteCircles(whiteCircles)
                 .addAllBlackCircles(blackCircles)
@@ -118,7 +118,7 @@ public class ShaperService {
             return null;
         }
         int batchId = nextBatchId.getAndIncrement();
-        int numberWhiteCombinations = Math.min(8, totalW - startWhiteCombination);
+        int numberWhiteCombinations = Math.min(12, totalW - startWhiteCombination);
         int numberBlackCombinations = Math.min(4, totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
