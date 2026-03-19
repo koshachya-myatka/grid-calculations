@@ -29,16 +29,16 @@ public class BatchCalculator {
                 List<Integer> positionWhite = numberToPositionCombination(12, whiteCirclesNumber, j);
                 pipes.addAll(createPipes(positionBlack, task.getBlackCircles()));
                 pipes.addAll(createPipes(positionWhite, task.getWhiteCircles()));
-                results.add(calculateCombination(pipes));
+                results.add(calculateCombination(task.getFieldWidth(), task.getFieldLength(), pipes));
             }
         }
         return results;
     }
 
-    private Result calculateCombination(List<Pipe> pipes) {
-        //TODO вот тут должно быть адекватное решение для конкретной комбинации на возможность соединения труб линией
+    private Result calculateCombination(int width, int length, List<Pipe> pipes) {
+        PipeMatrix pipeMatrix = new PipeMatrix(width, length, pipes);
         return Result.builder()
-                .connected(false)
+                .connected(pipeMatrix.calculateResult())
                 .pipes(pipes)
                 .build();
     }
