@@ -1,6 +1,8 @@
 package ru.paramonova.models;
 
+import ru.paramonova.dto.Line;
 import ru.paramonova.dto.Pipe;
+import ru.paramonova.dto.Result;
 
 import java.util.*;
 
@@ -29,6 +31,7 @@ public class PipeMatrix {
     private final Map<Integer, List<Integer>> forbiddenLineBorderYPositions = new HashMap<>();
     private final int width;
     private final int length;
+    private final List<Pipe> allPipes = new ArrayList<>();
     private final List<Pipe> whitePipes = new ArrayList<>();
     private final List<Pipe> blackPipes = new ArrayList<>();
     private final int[][] matrix;
@@ -36,6 +39,7 @@ public class PipeMatrix {
     public PipeMatrix(int width, int length, List<Pipe> pipes) {
         this.width = width;
         this.length = length;
+        this.allPipes.addAll(pipes);
         for (Pipe pipe : pipes) {
             if (pipe.isColor()) {
                 whitePipes.add(pipe);
@@ -43,7 +47,7 @@ public class PipeMatrix {
                 blackPipes.add(pipe);
             }
         }
-        matrix = new int[width][length];
+        matrix = new int[length][width];
         for (int[] ints : matrix) {
             Arrays.fill(ints, 0);
         }
@@ -61,30 +65,39 @@ public class PipeMatrix {
         forbiddenLineBorderYPositions.put(width - 1, List.of(1, 3, 4));
     }
 
-    public boolean calculateResult() {
+    public Result calculateResult() {
+//        System.out.println("ЗАШЕЛ В ПРОВЕРКУ ГРАНИЦ ДЛЯ ТРУБ");
+        //проверка, что трубы упираются некорректно в границу
         for (Pipe pipe : whitePipes) {
-            if ((pipe.getX() == 0 || pipe.getX() == length - 1)
-                    && forbiddenWhitePipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                return false;
+            if (pipe.getX() == 0 || pipe.getX() == length - 1) {
+                if (forbiddenWhitePipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
+                    return new Result(false, allPipes, new ArrayList<>());
+                }
             }
-            if ((pipe.getY() == 0 || pipe.getY() == width - 1)
-                    && forbiddenWhitePipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                return false;
+            if (pipe.getY() == 0 || pipe.getY() == width - 1) {
+                if (forbiddenWhitePipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
+                    return new Result(false, allPipes, new ArrayList<>());
+                }
             }
         }
+        //проверка, что трубы упираются некорректно в границу
         for (Pipe pipe : blackPipes) {
             if ((pipe.getX() == 0 || pipe.getX() == length - 1)
                     && forbiddenBlackPipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                return false;
+                return new Result(false, allPipes, new ArrayList<>());
             }
             if ((pipe.getY() == 0 || pipe.getY() == width - 1)
                     && forbiddenBlackPipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                return false;
+                return new Result(false, allPipes, new ArrayList<>());
             }
         }
+//        System.out.println("ЗАШЕЛ В ПРОВЕРКУ ГРАНИЦ ДЛЯ ЛИНИЙ");
+        //проверка, что линии из разобранных труб некорректно упираются в границу
         if (!pipeToLine()) {
-            return false;
+            return new Result(false, allPipes, new ArrayList<>());
         }
+//        System.out.println("ПЕРЕБИРАЮ ЛИНИИ");
+        //перебор всех вариантов линий и проверка возможности соединения их
         return checkAllLineCombinations();
     }
 
@@ -97,13 +110,13 @@ public class PipeMatrix {
                     if (y + 1 < width && matrix[x][y + 1] != 0 && !allowedLineYPositions.get(5).contains(matrix[x][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineYPositions.get(5).contains(matrix[x + 1][y])) {
+                    if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineXPositions.get(5).contains(matrix[x + 1][y])) {
                         return false;
                     }
                     if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x - 1][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && y - 1 >= 0 && matrix[x + 1][y - 1] != 0 && !allowedLineYPositions.get(1).contains(matrix[x + 1][y - 1])) {
+                    if (x + 1 < length && y - 1 >= 0 && matrix[x + 1][y - 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
                         return false;
                     }
                     matrix[x - 1][y] = 2;
@@ -114,13 +127,13 @@ public class PipeMatrix {
                     if (y + 2 < width && matrix[x][y + 2] != 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
                         return false;
                     }
-                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(1).contains(matrix[x + 1][y + 1])) {
+                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
                     if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x - 1][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineYPositions.get(4).contains(matrix[x + 1][y])) {
+                    if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineXPositions.get(4).contains(matrix[x + 1][y])) {
                         return false;
                     }
                     matrix[x - 1][y] = 2;
@@ -131,13 +144,13 @@ public class PipeMatrix {
                     if (y + 2 < width && matrix[x][y + 2] != 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
                         return false;
                     }
-                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(1).contains(matrix[x + 1][y + 1])) {
+                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
                     if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
-                    if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineYPositions.get(2).contains(matrix[x + 2][y])) {
+                    if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineXPositions.get(2).contains(matrix[x + 2][y])) {
                         return false;
                     }
                     matrix[x][y] = 3;
@@ -145,7 +158,7 @@ public class PipeMatrix {
                     matrix[x + 1][y] = 2;
                     break;
                 default:
-                    if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] != 0 && !allowedLineYPositions.get(1).contains(matrix[x + 1][y - 1])) {
+                    if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
                         return false;
                     }
                     if (y + 1 < width && matrix[x][y + 1] != 0 && !allowedLineYPositions.get(6).contains(matrix[x][y + 1])) {
@@ -154,7 +167,7 @@ public class PipeMatrix {
                     if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
-                    if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineYPositions.get(2).contains(matrix[x + 2][y])) {
+                    if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineXPositions.get(2).contains(matrix[x + 2][y])) {
                         return false;
                     }
                     matrix[x][y - 1] = 1;
@@ -174,13 +187,13 @@ public class PipeMatrix {
             int y = pipe.getY();
             List<Integer> lines = whiteLinePositions.get(pipe.getPosition());
             if (pipe.getPosition() <= 5) {
-                if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] != 0 && !allowedLineYPositions.get(lines.get(0)).contains(matrix[x + 1][y - 1])) {
+                if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] != 0 && !allowedLineXPositions.get(lines.get(0)).contains(matrix[x + 1][y - 1])) {
                     return false;
                 }
-                if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineYPositions.get(lines.get(1)).contains(matrix[x + 1][y])) {
+                if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineXPositions.get(lines.get(1)).contains(matrix[x + 1][y])) {
                     return false;
                 }
-                if (y + 1 < width && x + 1 < length && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
+                if (y + 1 < width && x + 1 < length && matrix[x + 1][y + 1] != 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
                     return false;
                 }
                 if (y + 2 < width && x + 1 < length && matrix[x + 1][y + 2] != 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 2])) {
@@ -199,7 +212,7 @@ public class PipeMatrix {
                 if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
                     return false;
                 }
-                if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 2][y])) {
+                if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 2][y])) {
                     return false;
                 }
                 matrix[x - 1][y] = lines.get(0);
@@ -210,13 +223,12 @@ public class PipeMatrix {
         return true;
     }
 
-    private boolean checkAllLineCombinations() {
-        boolean check = false;
-        for (int numCombination = 0; numCombination < width * length; numCombination++) {
+    private Result checkAllLineCombinations() {
+        for (int numCombination = 0; numCombination < (int) Math.pow(7, width * length); numCombination++) {
             int[][] currentMatrix = Arrays.stream(matrix)
                     .map(int[]::clone)
                     .toArray(int[][]::new);
-            List<Integer> lines = numberToLineCombination(width * length, numCombination);
+            List<Integer> linesPositions = numberToLineCombination(width * length, numCombination);
             int index = -1;
             for (int x = 0; x < length; x++) {
                 for (int y = 0; y < width; y++) {
@@ -224,16 +236,53 @@ public class PipeMatrix {
                     if (currentMatrix[x][y] != 0) {
                         continue;
                     }
-                    currentMatrix[x][y] = lines.get(index);
+                    currentMatrix[x][y] = linesPositions.get(index);
+                }
+            }
+            for (int y = 0; y < width; y++) {
+                if (currentMatrix[0][y] == 2 || currentMatrix[0][y] == 4 || currentMatrix[0][y] == 5) {
+                    return new Result(false, allPipes, new ArrayList<>());
+                }
+                if (currentMatrix[length - 1][y] == 2 || currentMatrix[length - 1][y] == 3 || currentMatrix[length - 1][y] == 6) {
+                    return new Result(false, allPipes, new ArrayList<>());
                 }
             }
             for (int x = 0; x < length; x++) {
-                for (int y = 0; y < width; y++) {
-                    //todo тут нужны флаги и continue/break
+                if (currentMatrix[x][0] == 1 || currentMatrix[x][0] == 5 || currentMatrix[x][0] == 6) {
+                    return new Result(false, allPipes, new ArrayList<>());
+                }
+                if (currentMatrix[x][width - 1] == 1 || currentMatrix[x][width - 1] == 3 || currentMatrix[x][width - 1] == 4) {
+                    return new Result(false, allPipes, new ArrayList<>());
                 }
             }
+            boolean checkForbidden = false;
+            for (int x = 0; x < length; x++) {
+                for (int y = 0; y < width; y++) {
+                    if (currentMatrix[x][y] != 0 && x + 1 < length && !allowedLineXPositions.get(currentMatrix[x][y]).contains(currentMatrix[x + 1][y])) {
+                        checkForbidden = true;
+                        break;
+                    }
+                    if (currentMatrix[x][y] != 0 && y + 1 < width && !allowedLineYPositions.get(currentMatrix[x][y]).contains(currentMatrix[x][y + 1])) {
+                        checkForbidden = true;
+                        break;
+                    }
+                }
+                if (checkForbidden) {
+                    break;
+                }
+            }
+            if (!checkForbidden) {
+                List<Line> lines = new ArrayList<>();
+                for (int x = 0; x < length; x++) {
+                    for (int y = 0; y < width; y++) {
+                        lines.add(new Line(x, y, currentMatrix[x][y]));
+                    }
+                }
+                System.out.println("УСПЕХ!");
+                return new Result(true, allPipes, lines);
+            }
         }
-        return false;
+        return new Result(false, allPipes, new ArrayList<>());
     }
 
     private List<Integer> numberToLineCombination(int cellNumber, int numberCombination) {

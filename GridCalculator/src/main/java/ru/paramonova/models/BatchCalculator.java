@@ -37,10 +37,7 @@ public class BatchCalculator {
 
     private Result calculateCombination(int width, int length, List<Pipe> pipes) {
         PipeMatrix pipeMatrix = new PipeMatrix(width, length, pipes);
-        return Result.builder()
-                .connected(pipeMatrix.calculateResult())
-                .pipes(pipes)
-                .build();
+        return pipeMatrix.calculateResult();
     }
 
     private List<Pipe> createPipes(List<Integer> positionCombination, List<Circle> circles) {

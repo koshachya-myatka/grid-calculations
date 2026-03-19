@@ -66,7 +66,7 @@ public class ShaperService {
                 int x = Integer.parseInt(values[0].trim());
                 int y = Integer.parseInt(values[1].trim());
                 boolean color = "1".equals(values[2].trim());
-                if (x < 0 || x >= fieldWidth || y < 0 || y >= fieldLength) {
+                if (x < 0 || x >= fieldLength || y < 0 || y >= fieldWidth) {
                     throw new IllegalArgumentException(
                             String.format("Круг с координатами (%d, %d) выходит за пределы поля\n", x, y)
                     );
@@ -145,7 +145,18 @@ public class ShaperService {
         List<Result> currentResults = results.get(taskId);
         currentResults.addAll(newResults);
         System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId + "\n");
+        for (Result result : newResults) {
+            if (result.getConnected()) {
+                System.out.println("Успешное соединение:");
+                System.out.println(result.getPipesList());
+                System.out.println(result.getLinesList());
+            }
+        }
         batches.get(taskId).removeIf(batch -> batch.getBatchId() == batchId);
+
+        //todo проверка, что это последний батч
+//        System.out.println("Результат для задачи " + taskId + ":");
+//        getResult(taskId);
     }
 
     public Result getResult(int taskId) {

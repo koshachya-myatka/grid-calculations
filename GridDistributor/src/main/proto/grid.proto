@@ -34,9 +34,16 @@ message Pipe {
     int32 position = 4;
 }
 
+message Line {
+    int32 x = 1;
+    int32 y = 2;
+    int32 position = 3;
+}
+
 message Result {
     bool connected = 1;
     repeated Pipe pipes = 2;
+    repeated Line lines = 3;
 }
 
 message FileRequest {
