@@ -136,6 +136,8 @@ public class WorkerService {
                 args[i] = objectMapper.convertValue(value.getFirst(), type);
             }
             Object result;
+            //todo грустновое (подумать о connection)
+            // запустить где-то в отдельном треде?? потому что у меня где-то висит connection
             result = mainMethod.invoke(calculatorInstance, args);
             sendResult(request, result);
         } catch (Exception e) {
