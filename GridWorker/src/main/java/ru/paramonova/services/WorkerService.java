@@ -102,47 +102,49 @@ public class WorkerService {
     }
 
     public void invokeMain(SolveRequest request) {
-        int taskId = request.getTaskId();
-        String taskData = tasksData.get(taskId);
-        Method mainMethod = mainMethods.get(taskId);
-        Object calculatorInstance = calculatorInstances.get(taskId);
-        if (taskData == null || mainMethod == null || calculatorInstance == null) {
-            throw new RuntimeException("Не были найдены данные для задачи " + taskId + "\n");
-        }
-        System.out.println("Запускаем метод @Main\n");
-        try {
-            // соединяем json-нки в кучу
-            ObjectNode commonJson = objectMapper.createObjectNode();
-            JsonNode taskNode = objectMapper.readTree(taskData);
-            JsonNode batchNode = objectMapper.readTree(request.getJsonSubtaskData());
-            commonJson.setAll((ObjectNode) taskNode);
-            commonJson.setAll((ObjectNode) batchNode);
-            String fullJson = objectMapper.writeValueAsString(commonJson);
-            // запускаем метод
-            Parameter[] parameters = mainMethod.getParameters();
-            Object[] args = new Object[parameters.length];
-            for (int i = 0; i < parameters.length; i++) {
-                Parameter parameter = parameters[i];
-                Param annotation = parameter.getAnnotation(Param.class);
-                if (annotation == null) {
-                    throw new RuntimeException("@Param отсутствует у параметра\n");
-                }
-                String name = annotation.value();
-                Class<?> type = parameter.getType();
-                List<Object> value = JsonPath.read(fullJson, "$.." + name);
-                if (value == null || value.isEmpty()) {
-                    throw new RuntimeException("В JSON нет параметра " + name + "\n");
-                }
-                args[i] = objectMapper.convertValue(value.getFirst(), type);
+        new Thread(() -> {
+            int taskId = request.getTaskId();
+            String taskData = tasksData.get(taskId);
+            Method mainMethod = mainMethods.get(taskId);
+            Object calculatorInstance = calculatorInstances.get(taskId);
+            if (taskData == null || mainMethod == null || calculatorInstance == null) {
+                throw new RuntimeException("Не были найдены данные для задачи " + taskId + "\n");
             }
-            Object result;
-            //todo грустновое (подумать о connection)
-            // запустить где-то в отдельном треде?? потому что у меня где-то висит connection
-            result = mainMethod.invoke(calculatorInstance, args);
-            sendResult(request, result);
-        } catch (Exception e) {
-            throw new RuntimeException("Не удалось запустить метод Main\n" + e);
-        }
+            System.out.println("Запускаем метод @Main\n");
+            try {
+                // соединяем json-нки в кучу
+                ObjectNode commonJson = objectMapper.createObjectNode();
+                JsonNode taskNode = objectMapper.readTree(taskData);
+                JsonNode batchNode = objectMapper.readTree(request.getJsonSubtaskData());
+                commonJson.setAll((ObjectNode) taskNode);
+                commonJson.setAll((ObjectNode) batchNode);
+                String fullJson = objectMapper.writeValueAsString(commonJson);
+                // запускаем метод
+                Parameter[] parameters = mainMethod.getParameters();
+                Object[] args = new Object[parameters.length];
+                for (int i = 0; i < parameters.length; i++) {
+                    Parameter parameter = parameters[i];
+                    Param annotation = parameter.getAnnotation(Param.class);
+                    if (annotation == null) {
+                        throw new RuntimeException("@Param отсутствует у параметра\n");
+                    }
+                    String name = annotation.value();
+                    Class<?> type = parameter.getType();
+                    List<Object> value = JsonPath.read(fullJson, "$.." + name);
+                    if (value == null || value.isEmpty()) {
+                        throw new RuntimeException("В JSON нет параметра " + name + "\n");
+                    }
+                    args[i] = objectMapper.convertValue(value.getFirst(), type);
+                }
+                Object result;
+                //todo грустновое (подумать о connection)
+                // запустить где-то в отдельном треде?? потому что у меня где-то висит connection
+                result = mainMethod.invoke(calculatorInstance, args);
+                sendResult(request, result);
+            } catch (Exception e) {
+                throw new RuntimeException("Не удалось запустить метод Main\n" + e);
+            }
+        }).start();
     }
 
     private void sendResult(SolveRequest request, Object result) {
