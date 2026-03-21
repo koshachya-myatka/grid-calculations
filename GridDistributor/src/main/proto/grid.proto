@@ -41,9 +41,10 @@ message Line {
 }
 
 message Result {
-    bool connected = 1;
-    repeated Pipe pipes = 2;
-    repeated Line lines = 3;
+    int32 batchId = 1;
+    bool connected = 2;
+    repeated Pipe pipes = 3;
+    repeated Line lines = 4;
 }
 
 message FileRequest {

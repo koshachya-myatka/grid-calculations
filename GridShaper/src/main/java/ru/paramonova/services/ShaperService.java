@@ -145,26 +145,61 @@ public class ShaperService {
         List<Result> currentResults = results.get(taskId);
         currentResults.addAll(newResults);
         System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId + "\n");
-        for (Result result : newResults) {
-            if (result.getConnected()) {
-                System.out.println("Успешное соединение:");
-                System.out.println(result.getPipesList());
-                System.out.println(result.getLinesList());
-            }
+        //todo придумать варик получше
+        if (isLastResult(taskId)) {
+            getResult(taskId);
         }
-        batches.get(taskId).removeIf(batch -> batch.getBatchId() == batchId);
+    }
 
-        //todo проверка, что это последний батч
-//        System.out.println("Результат для задачи " + taskId + ":");
-//        getResult(taskId);
+    private boolean isLastResult(int taskId) {
+        if (batches.get(taskId) == null || results.get(taskId) == null) {
+            throw new RuntimeException("Не были найдены батчи или результаты для задачи " + taskId);
+        }
+        List<Integer> idsInResults = results.get(taskId)
+                .stream().map(Result::getBatchId).toList();
+        List<Integer> idsInBatches = batches.get(taskId)
+                .stream().map(Batch::getBatchId).toList();
+        return idsInResults.containsAll(idsInBatches);
     }
 
     public Result getResult(int taskId) {
-        if (batches.get(taskId) != null && batches.get(taskId).isEmpty()) {
-            batches.remove(taskId);
+        if (results.get(taskId) == null) {
+            throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
-        //TODO здесь будет выбираться итоговый результат вместо первого
+        List<Result> allResults = results.get(taskId);
+        Result finalResult = allResults.getFirst();
+        for (Result result : allResults) {
+            if (result.getConnected()) {
+                System.out.println("Успешное соединение:");
+                visualizeTaskSolution(taskId, result);
+                finalResult = result;
+            }
+        }
         System.out.println("Всего результатов: " + results.get(taskId).size());
-        return results.get(taskId).getFirst();
+        return finalResult;
+    }
+
+    private void visualizeTaskSolution(int taskId, Result result) {
+        Task task = tasks.get(taskId);
+        if (task == null) {
+            throw new RuntimeException("Не найдена задача " + taskId + "\n");
+        }
+        List<String> lineSymbols = List.of(" ", "-", "|", "┌", "└", "┘", "┐");
+        List<String> circleSymbols = List.of("○", "●");
+        int width = task.getFieldWidth();
+        int length = task.getFieldLength();
+        String[][] matrix = new String[length][width];
+        for (Line line : result.getLinesList()) {
+            matrix[line.getX()][line.getY()] = lineSymbols.get(line.getPosition());
+        }
+        for (Pipe pipe : result.getPipesList()) {
+            matrix[pipe.getX()][pipe.getY()] = pipe.getColor() ? circleSymbols.get(1) : circleSymbols.get(0);
+        }
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < width; y++) {
+                System.out.print(matrix[x][y] + " ");
+            }
+            System.out.print("\n");
+        }
     }
 }

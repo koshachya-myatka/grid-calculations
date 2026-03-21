@@ -14,14 +14,16 @@ public class PipeMatrix {
     private final Map<Integer, List<Integer>> forbiddenWhitePipeYPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> forbiddenWhitePipeXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> allowedLineXPositions =
-            Map.of(1, List.of(0, 1, 3, 6),
+            Map.of(0, List.of(0, 1, 3, 6),
+                    1, List.of(0, 1, 3, 6),
                     2, List.of(2, 4, 5),
                     3, List.of(2, 4, 5),
                     4, List.of(0, 1, 3, 6),
                     5, List.of(0, 1, 3, 6),
                     6, List.of(2, 4, 5));
     private final Map<Integer, List<Integer>> allowedLineYPositions =
-            Map.of(1, List.of(1, 5, 6),
+            Map.of(0, List.of(0, 2, 3, 4),
+                    1, List.of(1, 5, 6),
                     2, List.of(0, 2, 3, 4),
                     3, List.of(1, 5, 6),
                     4, List.of(1, 5, 6),
@@ -29,6 +31,7 @@ public class PipeMatrix {
                     6, List.of(0, 2, 3, 4));
     private final Map<Integer, List<Integer>> forbiddenLineBorderXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> forbiddenLineBorderYPositions = new HashMap<>();
+    private final int batchId;
     private final int width;
     private final int length;
     private final List<Pipe> allPipes = new ArrayList<>();
@@ -36,7 +39,8 @@ public class PipeMatrix {
     private final List<Pipe> blackPipes = new ArrayList<>();
     private final int[][] matrix;
 
-    public PipeMatrix(int width, int length, List<Pipe> pipes) {
+    public PipeMatrix(int batchId, int width, int length, List<Pipe> pipes) {
+        this.batchId = batchId;
         this.width = width;
         this.length = length;
         this.allPipes.addAll(pipes);
@@ -66,38 +70,35 @@ public class PipeMatrix {
     }
 
     public Result calculateResult() {
-//        System.out.println("ЗАШЕЛ В ПРОВЕРКУ ГРАНИЦ ДЛЯ ТРУБ");
-        //проверка, что трубы упираются некорректно в границу
+        // проверка, что трубы упираются некорректно в границу
         for (Pipe pipe : whitePipes) {
             if (pipe.getX() == 0 || pipe.getX() == length - 1) {
                 if (forbiddenWhitePipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                    return new Result(false, allPipes, new ArrayList<>());
+                    return new Result(batchId, false, allPipes, new ArrayList<>());
                 }
             }
             if (pipe.getY() == 0 || pipe.getY() == width - 1) {
                 if (forbiddenWhitePipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                    return new Result(false, allPipes, new ArrayList<>());
+                    return new Result(batchId, false, allPipes, new ArrayList<>());
                 }
             }
         }
-        //проверка, что трубы упираются некорректно в границу
+        // проверка, что трубы упираются некорректно в границу
         for (Pipe pipe : blackPipes) {
             if ((pipe.getX() == 0 || pipe.getX() == length - 1)
                     && forbiddenBlackPipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                return new Result(false, allPipes, new ArrayList<>());
+                return new Result(batchId, false, allPipes, new ArrayList<>());
             }
             if ((pipe.getY() == 0 || pipe.getY() == width - 1)
                     && forbiddenBlackPipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                return new Result(false, allPipes, new ArrayList<>());
+                return new Result(batchId, false, allPipes, new ArrayList<>());
             }
         }
-//        System.out.println("ЗАШЕЛ В ПРОВЕРКУ ГРАНИЦ ДЛЯ ЛИНИЙ");
-        //проверка, что линии из разобранных труб некорректно упираются в границу
+        // проверка, что линии из разобранных труб некорректно упираются в границу
         if (!pipeToLine()) {
-            return new Result(false, allPipes, new ArrayList<>());
+            return new Result(batchId, false, allPipes, new ArrayList<>());
         }
-//        System.out.println("ПЕРЕБИРАЮ ЛИНИИ");
-        //перебор всех вариантов линий и проверка возможности соединения их
+        // перебор всех вариантов линий и проверка возможности соединения их
         return checkAllLineCombinations();
     }
 
@@ -224,45 +225,54 @@ public class PipeMatrix {
     }
 
     private Result checkAllLineCombinations() {
-        for (int numCombination = 0; numCombination < (int) Math.pow(7, width * length); numCombination++) {
+        int numberCellWithoutLine = width * length - allPipes.size() * 3;
+        int numberLineCombinations = (int) Math.pow(7, numberCellWithoutLine);
+        for (int numCombination = 0; numCombination < numberLineCombinations; numCombination++) {
             int[][] currentMatrix = Arrays.stream(matrix)
                     .map(int[]::clone)
                     .toArray(int[][]::new);
-            List<Integer> linesPositions = numberToLineCombination(width * length, numCombination);
+            List<Integer> linesPositions = numberToLineCombination(numberCellWithoutLine, numCombination);
             int index = -1;
             for (int x = 0; x < length; x++) {
                 for (int y = 0; y < width; y++) {
-                    index++;
                     if (currentMatrix[x][y] != 0) {
                         continue;
                     }
+                    index++;
                     currentMatrix[x][y] = linesPositions.get(index);
                 }
             }
+            boolean checkForbidden = false;
             for (int y = 0; y < width; y++) {
                 if (currentMatrix[0][y] == 2 || currentMatrix[0][y] == 4 || currentMatrix[0][y] == 5) {
-                    return new Result(false, allPipes, new ArrayList<>());
+                    checkForbidden = true;
+                    break;
                 }
                 if (currentMatrix[length - 1][y] == 2 || currentMatrix[length - 1][y] == 3 || currentMatrix[length - 1][y] == 6) {
-                    return new Result(false, allPipes, new ArrayList<>());
+                    checkForbidden = true;
+                    break;
                 }
             }
             for (int x = 0; x < length; x++) {
                 if (currentMatrix[x][0] == 1 || currentMatrix[x][0] == 5 || currentMatrix[x][0] == 6) {
-                    return new Result(false, allPipes, new ArrayList<>());
+                    checkForbidden = true;
+                    break;
                 }
                 if (currentMatrix[x][width - 1] == 1 || currentMatrix[x][width - 1] == 3 || currentMatrix[x][width - 1] == 4) {
-                    return new Result(false, allPipes, new ArrayList<>());
+                    checkForbidden = true;
+                    break;
                 }
             }
-            boolean checkForbidden = false;
+            if (checkForbidden) {
+                continue;
+            }
             for (int x = 0; x < length; x++) {
                 for (int y = 0; y < width; y++) {
-                    if (currentMatrix[x][y] != 0 && x + 1 < length && !allowedLineXPositions.get(currentMatrix[x][y]).contains(currentMatrix[x + 1][y])) {
+                    if (x + 1 < length && !allowedLineXPositions.get(currentMatrix[x][y]).contains(currentMatrix[x + 1][y])) {
                         checkForbidden = true;
                         break;
                     }
-                    if (currentMatrix[x][y] != 0 && y + 1 < width && !allowedLineYPositions.get(currentMatrix[x][y]).contains(currentMatrix[x][y + 1])) {
+                    if (y + 1 < width && !allowedLineYPositions.get(currentMatrix[x][y]).contains(currentMatrix[x][y + 1])) {
                         checkForbidden = true;
                         break;
                     }
@@ -278,11 +288,11 @@ public class PipeMatrix {
                         lines.add(new Line(x, y, currentMatrix[x][y]));
                     }
                 }
-                System.out.println("УСПЕХ!");
-                return new Result(true, allPipes, lines);
+                System.out.println("Нашлось решение! Комбинация линий: " + linesPositions + "\n");
+                return new Result(batchId, true, allPipes, lines);
             }
         }
-        return new Result(false, allPipes, new ArrayList<>());
+        return new Result(batchId, false, allPipes, new ArrayList<>());
     }
 
     private List<Integer> numberToLineCombination(int cellNumber, int numberCombination) {
@@ -294,6 +304,6 @@ public class PipeMatrix {
         while (linePositions.size() < cellNumber) {
             linePositions.add(0);
         }
-        return linePositions;
+        return linePositions.reversed();
     }
 }

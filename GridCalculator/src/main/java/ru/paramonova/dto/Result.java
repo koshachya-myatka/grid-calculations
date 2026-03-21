@@ -11,6 +11,7 @@ import java.util.List;
 @Builder
 @ToString
 public class Result {
+    int batchId;
     boolean connected;
     List<Pipe> pipes;
     List<Line> lines;

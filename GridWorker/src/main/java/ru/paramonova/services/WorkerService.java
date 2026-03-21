@@ -38,6 +38,7 @@ public class WorkerService {
     private final Map<Integer, Method> mainMethods = new HashMap<>();
 
     public void solveSubtask(SolveRequest request) {
+        //todo заполнить по примеру с возвратом статуса занятости?
         try {
             if (request.getJsonTaskData() != null) {
                 setTaskData(request.getTaskId(), request.getJsonTaskData(), request.getJarCalculator());
@@ -137,8 +138,6 @@ public class WorkerService {
                     args[i] = objectMapper.convertValue(value.getFirst(), type);
                 }
                 Object result;
-                //todo грустновое (подумать о connection)
-                // запустить где-то в отдельном треде?? потому что у меня где-то висит connection
                 result = mainMethod.invoke(calculatorInstance, args);
                 sendResult(request, result);
             } catch (Exception e) {
