@@ -118,8 +118,8 @@ public class ShaperService {
             return null;
         }
         int batchId = nextBatchId.getAndIncrement();
-        int numberWhiteCombinations = Math.min(12, totalW - startWhiteCombination);
-        int numberBlackCombinations = Math.min(4, totalB - startBlackCombination);
+        int numberWhiteCombinations = Math.min((int) Math.pow(12, 3), totalW - startWhiteCombination);
+        int numberBlackCombinations = Math.min((int) Math.pow(4, 5), totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
                 .setTaskId(taskId)
