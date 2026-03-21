@@ -1,42 +1,50 @@
 package ru.paramonova;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Main {
+    static int[] array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
     public static void main(String[] args) {
-        int[] array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-        int sumResult = threadSum(array, 5);
+        System.out.println(threadSum(5));
     }
 
-    public static int threadSum(int[] array, int numThread) {
-        List<Integer> results = new ArrayList<>();
-        for (int i = 0; i < numThread - 1; i++) {
+    public static int threadSum(int numThread) {
+        int result = 0;
+        List<SummingThread> threads = new ArrayList<>();
+        for (int i = 0; i < numThread; i++) {
             int startInd = i * array.length / numThread;
             int endInd = i * array.length / numThread + array.length / numThread;
-            Thread thread = new Thread(() -> {
-                results.add(sumArray(Arrays.copyOfRange(array, startInd, endInd)));
-            });
-            thread.start();
+            threads.add(new SummingThread(startInd, endInd));
+            threads.get(i).start();
+        }
+        for (int i = 0; i < numThread; i++) {
             try {
-                thread.join();
+                threads.get(i).join();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+            result += threads.get(i).result;
         }
-        int res = 0;
-        for (int result : results) {
-            res += result;
-        }
-        return res;
+        return result;
+    }
+}
+
+class SummingThread extends Thread {
+    int start;
+    int end;
+    public int result = 0;
+
+    SummingThread(int start, int end) {
+        this.start = start;
+        this.end = end;
     }
 
-    public static int sumArray(int[] array) {
-        int res = 0;
-        for (int j : array) {
-            res += j;
+    @Override
+    public void run() {
+        for (int i = start; i < end; i++) {
+            result += Main.array[i];
         }
-        return res;
     }
 }
