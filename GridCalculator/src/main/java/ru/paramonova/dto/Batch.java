@@ -15,4 +15,6 @@ public class Batch {
     int numberWhiteCombinations;
     int startBlackCombination;
     int numberBlackCombinations;
+    long startLineCombination;
+    long numberLineCombinations;
 }

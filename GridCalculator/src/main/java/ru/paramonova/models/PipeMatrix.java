@@ -32,6 +32,8 @@ public class PipeMatrix {
     private final Map<Integer, List<Integer>> forbiddenLineBorderXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> forbiddenLineBorderYPositions = new HashMap<>();
     private final int batchId;
+    private final long startLineCombination;
+    private final long numberLineCombinations;
     private final int width;
     private final int length;
     private final List<Pipe> allPipes = new ArrayList<>();
@@ -39,8 +41,11 @@ public class PipeMatrix {
     private final List<Pipe> blackPipes = new ArrayList<>();
     private final int[][] matrix;
 
-    public PipeMatrix(int batchId, int width, int length, List<Pipe> pipes) {
+    public PipeMatrix(int batchId, long startLineCombination, long numberLineCombinations,
+                      int width, int length, List<Pipe> pipes) {
         this.batchId = batchId;
+        this.startLineCombination = startLineCombination;
+        this.numberLineCombinations = numberLineCombinations;
         this.width = width;
         this.length = length;
         this.allPipes.addAll(pipes);
@@ -226,8 +231,7 @@ public class PipeMatrix {
 
     private Result checkAllLineCombinations() {
         int numberCellWithoutLine = width * length - allPipes.size() * 3;
-        int numberLineCombinations = (int) Math.pow(7, numberCellWithoutLine);
-        for (int numCombination = 0; numCombination < numberLineCombinations; numCombination++) {
+        for (long numCombination = startLineCombination; numCombination < numberLineCombinations; numCombination++) {
             int[][] currentMatrix = Arrays.stream(matrix)
                     .map(int[]::clone)
                     .toArray(int[][]::new);
@@ -295,10 +299,10 @@ public class PipeMatrix {
         return new Result(batchId, false, allPipes, new ArrayList<>());
     }
 
-    private List<Integer> numberToLineCombination(int cellNumber, int numberCombination) {
+    private List<Integer> numberToLineCombination(int cellNumber, long numberCombination) {
         List<Integer> linePositions = new ArrayList<>();
         while (numberCombination > 0) {
-            linePositions.add(numberCombination % 7);
+            linePositions.add((int) numberCombination % 7);
             numberCombination /= 7;
         }
         while (linePositions.size() < cellNumber) {

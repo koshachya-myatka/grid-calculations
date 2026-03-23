@@ -76,7 +76,8 @@ public class MyGrpcClient {
                 .append("Ширина поля: ").append(task.getFieldWidth()).append("\n")
                 .append("Длина поля: ").append(task.getFieldLength()).append("\n")
                 .append("Кол-во комбинаций белых кругов: ").append(task.getTotalWhiteCombinations()).append("\n")
-                .append("Кол-во комбинаций черных кругов: ").append(task.getTotalBlackCombinations()).append("\n");
+                .append("Кол-во комбинаций черных кругов: ").append(task.getTotalBlackCombinations()).append("\n")
+                .append("Кол-во комбинаций для линий поля: ").append(task.getTotalLineCombinations()).append("\n");
         List<Circle> allCircles = new ArrayList<>();
         allCircles.addAll(task.getBlackCirclesList());
         allCircles.addAll(task.getWhiteCirclesList());
