@@ -14,9 +14,8 @@ message Task {
     int32 fieldLength = 3;
     int32 totalWhiteCombinations = 4;
     int32 totalBlackCombinations = 5;
-    int64 totalLineCombinations = 6;
-    repeated Circle whiteCircles = 7;
-    repeated Circle blackCircles = 8;
+    repeated Circle whiteCircles = 6;
+    repeated Circle blackCircles = 7;
 }
 
 message Batch {
@@ -26,8 +25,6 @@ message Batch {
     int32 numberWhiteCombinations = 4;
     int32 startBlackCombination = 5;
     int32 numberBlackCombinations = 6;
-    int64 startLineCombination = 7;
-    int64 numberLineCombinations = 8;
 }
 
 message Pipe {

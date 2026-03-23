@@ -36,8 +36,7 @@ public class BatchCalculator {
     }
 
     private Result calculateCombination(Batch batch, Task task, List<Pipe> pipes) {
-        PipeMatrix pipeMatrix = new PipeMatrix(batch.getBatchId(), batch.getStartLineCombination(),
-                batch.getNumberLineCombinations(), task.getFieldWidth(),
+        PipeMatrix pipeMatrix = new PipeMatrix(batch.getBatchId(), task.getFieldWidth(),
                 task.getFieldLength(), pipes);
         return pipeMatrix.calculateResult();
     }

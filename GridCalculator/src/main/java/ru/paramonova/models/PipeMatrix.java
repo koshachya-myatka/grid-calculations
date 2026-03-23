@@ -32,8 +32,6 @@ public class PipeMatrix {
     private final Map<Integer, List<Integer>> forbiddenLineBorderXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> forbiddenLineBorderYPositions = new HashMap<>();
     private final int batchId;
-    private final long startLineCombination;
-    private final long numberLineCombinations;
     private final int width;
     private final int length;
     private final List<Pipe> allPipes = new ArrayList<>();
@@ -41,11 +39,8 @@ public class PipeMatrix {
     private final List<Pipe> blackPipes = new ArrayList<>();
     private final int[][] matrix;
 
-    public PipeMatrix(int batchId, long startLineCombination, long numberLineCombinations,
-                      int width, int length, List<Pipe> pipes) {
+    public PipeMatrix(int batchId, int width, int length, List<Pipe> pipes) {
         this.batchId = batchId;
-        this.startLineCombination = startLineCombination;
-        this.numberLineCombinations = numberLineCombinations;
         this.width = width;
         this.length = length;
         this.allPipes.addAll(pipes);
@@ -230,84 +225,206 @@ public class PipeMatrix {
     }
 
     private Result checkAllLineCombinations() {
-        int numberCellWithoutLine = width * length - allPipes.size() * 3;
-        for (long numCombination = startLineCombination; numCombination < numberLineCombinations; numCombination++) {
-            int[][] currentMatrix = Arrays.stream(matrix)
-                    .map(int[]::clone)
-                    .toArray(int[][]::new);
-            List<Integer> linesPositions = numberToLineCombination(numberCellWithoutLine, numCombination);
-            int index = -1;
-            for (int x = 0; x < length; x++) {
-                for (int y = 0; y < width; y++) {
-                    if (currentMatrix[x][y] != 0) {
-                        continue;
-                    }
-                    index++;
-                    currentMatrix[x][y] = linesPositions.get(index);
-                }
-            }
-            boolean checkForbidden = false;
-            for (int y = 0; y < width; y++) {
-                if (currentMatrix[0][y] == 2 || currentMatrix[0][y] == 4 || currentMatrix[0][y] == 5) {
-                    checkForbidden = true;
-                    break;
-                }
-                if (currentMatrix[length - 1][y] == 2 || currentMatrix[length - 1][y] == 3 || currentMatrix[length - 1][y] == 6) {
-                    checkForbidden = true;
-                    break;
-                }
-            }
-            for (int x = 0; x < length; x++) {
-                if (currentMatrix[x][0] == 1 || currentMatrix[x][0] == 5 || currentMatrix[x][0] == 6) {
-                    checkForbidden = true;
-                    break;
-                }
-                if (currentMatrix[x][width - 1] == 1 || currentMatrix[x][width - 1] == 3 || currentMatrix[x][width - 1] == 4) {
-                    checkForbidden = true;
-                    break;
-                }
-            }
-            if (checkForbidden) {
-                continue;
-            }
-            for (int x = 0; x < length; x++) {
-                for (int y = 0; y < width; y++) {
-                    if (x + 1 < length && !allowedLineXPositions.get(currentMatrix[x][y]).contains(currentMatrix[x + 1][y])) {
-                        checkForbidden = true;
-                        break;
-                    }
-                    if (y + 1 < width && !allowedLineYPositions.get(currentMatrix[x][y]).contains(currentMatrix[x][y + 1])) {
-                        checkForbidden = true;
-                        break;
-                    }
-                }
-                if (checkForbidden) {
-                    break;
-                }
-            }
-            if (!checkForbidden) {
-                List<Line> lines = new ArrayList<>();
-                for (int x = 0; x < length; x++) {
-                    for (int y = 0; y < width; y++) {
-                        lines.add(new Line(x, y, currentMatrix[x][y]));
-                    }
-                }
-                System.out.println("Нашлось решение! Комбинация линий: " + linesPositions + "\n");
-                return new Result(batchId, true, allPipes, lines);
-            }
+        int[][] currentMatrix = Arrays.stream(matrix)
+                .map(int[]::clone)
+                .toArray(int[][]::new);
+
+        Result result = dfs(currentMatrix);
+
+        if (result != null) {
+            return result;
         }
+
         return new Result(batchId, false, allPipes, new ArrayList<>());
     }
 
-    private List<Integer> numberToLineCombination(int cellNumber, long numberCombination) {
-        List<Integer> linePositions = new ArrayList<>();
-        while (numberCombination > 0) {
-            linePositions.add((int) numberCombination % 7);
-            numberCombination /= 7;
+    private Result dfs(int[][] matrix) {
+        int[] cell = findNextCell(matrix);
+
+        if (cell == null) {
+            if (isSingleConnectedComponent(matrix)) {
+                return buildResult(matrix);
+            }
+            return null;
         }
-        while (linePositions.size() < cellNumber) {
-            linePositions.add(0);
+
+        int x = cell[0];
+        int y = cell[1];
+
+        for (int pos = 0; pos <= 6; pos++) {
+
+            if (!isValidPlacement(matrix, x, y, pos)) continue;
+
+            matrix[x][y] = pos;
+
+            if (!checkLocalConsistency(matrix, x, y)) {
+                matrix[x][y] = 0;
+                continue;
+            }
+
+            Result res = dfs(matrix);
+            if (res != null) return res;
+
+            matrix[x][y] = 0;
         }
-        return linePositions.reversed();
+
+        return null;
+    }
+
+    private int[] findNextCell(int[][] matrix) {
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < width; y++) {
+                if (matrix[x][y] == 0 && hasNeighbor(matrix, x, y)) {
+                    return new int[]{x, y};
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean hasNeighbor(int[][] m, int x, int y) {
+        return (x > 0 && m[x - 1][y] != 0)
+                || (x < length - 1 && m[x + 1][y] != 0)
+                || (y > 0 && m[x][y - 1] != 0)
+                || (y < width - 1 && m[x][y + 1] != 0);
+    }
+
+    private boolean isValidPlacement(int[][] m, int x, int y, int pos) {
+
+        // границы
+        if (x == 0 && forbiddenLineBorderXPositions.get(0).contains(pos)) return false;
+        if (x == length - 1 && forbiddenLineBorderXPositions.get(length - 1).contains(pos)) return false;
+        if (y == 0 && forbiddenLineBorderYPositions.get(0).contains(pos)) return false;
+        if (y == width - 1 && forbiddenLineBorderYPositions.get(width - 1).contains(pos)) return false;
+
+        // соседи
+        if (x > 0 && m[x - 1][y] != 0 &&
+                !allowedLineXPositions.get(m[x - 1][y]).contains(pos)) return false;
+
+        if (y > 0 && m[x][y - 1] != 0 &&
+                !allowedLineYPositions.get(m[x][y - 1]).contains(pos)) return false;
+
+        if (x < length - 1 && m[x + 1][y] != 0 &&
+                !allowedLineXPositions.get(pos).contains(m[x + 1][y])) return false;
+
+        if (y < width - 1 && m[x][y + 1] != 0 &&
+                !allowedLineYPositions.get(pos).contains(m[x][y + 1])) return false;
+
+        return true;
+    }
+
+    private boolean checkLocalConsistency(int[][] m, int x, int y) {
+
+        int connections = countConnections(m, x, y);
+
+        // максимум 2 соединения
+        if (connections > 2) return false;
+
+        // если уже 1 соединение → должна быть возможность сделать второе
+        if (connections == 1 && !canHaveSecondConnection(m, x, y)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private int countConnections(int[][] m, int x, int y) {
+        int count = 0;
+        int pos = m[x][y];
+
+        if (x > 0 && m[x - 1][y] != 0 &&
+                allowedLineXPositions.get(pos).contains(m[x - 1][y])) count++;
+
+        if (x < length - 1 && m[x + 1][y] != 0 &&
+                allowedLineXPositions.get(pos).contains(m[x + 1][y])) count++;
+
+        if (y > 0 && m[x][y - 1] != 0 &&
+                allowedLineYPositions.get(pos).contains(m[x][y - 1])) count++;
+
+        if (y < width - 1 && m[x][y + 1] != 0 &&
+                allowedLineYPositions.get(pos).contains(m[x][y + 1])) count++;
+
+        return count;
+    }
+
+    private boolean canHaveSecondConnection(int[][] m, int x, int y) {
+
+        int pos = m[x][y];
+
+        // проверяем есть ли хотя бы один потенциальный сосед
+        if (x > 0 && m[x - 1][y] == 0) return true;
+        if (x < length - 1 && m[x + 1][y] == 0) return true;
+        if (y > 0 && m[x][y - 1] == 0) return true;
+        if (y < width - 1 && m[x][y + 1] == 0) return true;
+
+        return false;
+    }
+
+    private boolean isSingleConnectedComponent(int[][] m) {
+
+        boolean[][] visited = new boolean[length][width];
+        int startX = -1, startY = -1;
+
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < width; y++) {
+                if (m[x][y] != 0) {
+                    startX = x;
+                    startY = y;
+                    break;
+                }
+            }
+        }
+
+        if (startX == -1) return false;
+
+        dfsVisit(m, visited, startX, startY);
+
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < width; y++) {
+                if (m[x][y] != 0 && !visited[x][y]) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private void dfsVisit(int[][] m, boolean[][] visited, int x, int y) {
+        visited[x][y] = true;
+
+        int pos = m[x][y];
+
+        if (x > 0 && !visited[x - 1][y] && m[x - 1][y] != 0 &&
+                allowedLineXPositions.get(pos).contains(m[x - 1][y])) {
+            dfsVisit(m, visited, x - 1, y);
+        }
+
+        if (x < length - 1 && !visited[x + 1][y] && m[x + 1][y] != 0 &&
+                allowedLineXPositions.get(pos).contains(m[x + 1][y])) {
+            dfsVisit(m, visited, x + 1, y);
+        }
+
+        if (y > 0 && !visited[x][y - 1] && m[x][y - 1] != 0 &&
+                allowedLineYPositions.get(pos).contains(m[x][y - 1])) {
+            dfsVisit(m, visited, x, y - 1);
+        }
+
+        if (y < width - 1 && !visited[x][y + 1] && m[x][y + 1] != 0 &&
+                allowedLineYPositions.get(pos).contains(m[x][y + 1])) {
+            dfsVisit(m, visited, x, y + 1);
+        }
+    }
+
+    private Result buildResult(int[][] m) {
+        List<Line> lines = new ArrayList<>();
+
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < width; y++) {
+                lines.add(new Line(x, y, m[x][y]));
+            }
+        }
+
+        return new Result(batchId, true, allPipes, lines);
     }
 }

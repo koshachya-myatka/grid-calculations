@@ -21,8 +21,6 @@ public class ShaperService {
     private final Map<Integer, Integer> batchStartsWhite = new ConcurrentHashMap<>();
     // id таски - текущий стартовый номер комбинации черных кругов
     private final Map<Integer, Integer> batchStartsBlack = new ConcurrentHashMap<>();
-    // id таски - текущий стартовый номер комбинации линий
-    private final Map<Integer, Long> batchStartsLine = new ConcurrentHashMap<>();
     // id таски - список результатов решений для нее
     private final Map<Integer, List<Result>> results = new ConcurrentHashMap<>();
     private final AtomicInteger nextTaskId = new AtomicInteger(0);
@@ -36,7 +34,6 @@ public class ShaperService {
         results.put(taskId, new ArrayList<>());
         batchStartsWhite.put(taskId, 0);
         batchStartsBlack.put(taskId, 0);
-        batchStartsLine.put(taskId, 0L);
         return task;
     }
 
@@ -94,7 +91,6 @@ public class ShaperService {
                 .setFieldLength(fieldLength)
                 .setTotalWhiteCombinations((int) Math.pow(12, whiteCircles.size()))
                 .setTotalBlackCombinations((int) Math.pow(4, blackCircles.size()))
-                .setTotalLineCombinations((long) Math.pow(7, fieldWidth * fieldLength - 3 * (whiteCircles.size() + blackCircles.size())))
                 .addAllWhiteCircles(whiteCircles)
                 .addAllBlackCircles(blackCircles)
                 .build();
@@ -111,11 +107,9 @@ public class ShaperService {
         }
         int totalW = task.getTotalWhiteCombinations();
         int totalB = task.getTotalBlackCombinations();
-        long totalL = task.getTotalLineCombinations();
         int startWhiteCombination = batchStartsWhite.get(taskId);
         int startBlackCombination = batchStartsBlack.get(taskId);
-        long startLineCombination = batchStartsLine.get(taskId);
-        if (startBlackCombination >= totalB) {
+        if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
             //TODO добавить более адекватное закольцовывание, когда мы сгенерили все возможные батчи,
             // но у нас появился новый свободный воркер ?
 //            if (batches.get(taskId) != null && !batches.get(taskId).isEmpty()) {
@@ -125,9 +119,8 @@ public class ShaperService {
         }
         int batchId = nextBatchId.getAndIncrement();
         //todo
-        int numberWhiteCombinations = Math.min((int) Math.pow(12, 2), totalW - startWhiteCombination);
-        int numberBlackCombinations = Math.min((int) Math.pow(4, 2), totalB - startBlackCombination);
-        long numberLineCombinations = Math.min((long) Math.pow(7, 20), totalL - startLineCombination);
+        int numberWhiteCombinations = Math.min((int) Math.pow(12, 1), totalW - startWhiteCombination);
+        int numberBlackCombinations = Math.min((int) Math.pow(4, 1), totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
                 .setTaskId(taskId)
@@ -135,21 +128,13 @@ public class ShaperService {
                 .setNumberWhiteCombinations(numberWhiteCombinations)
                 .setStartBlackCombination(startBlackCombination)
                 .setNumberBlackCombinations(numberBlackCombinations)
-                .setStartLineCombination(startLineCombination)
-                .setNumberLineCombinations(numberLineCombinations)
                 .build();
         List<Batch> currentTaskBatches = batches.get(taskId);
         currentTaskBatches.add(batch);
-        batchStartsLine.merge(taskId, numberLineCombinations, Long::sum);
-        if (startLineCombination + numberLineCombinations >= task.getTotalLineCombinations()) {
-            batchStartsLine.replace(taskId, 0L);
+        batchStartsBlack.merge(taskId, numberBlackCombinations, Integer::sum);
+        if (startBlackCombination + numberBlackCombinations >= task.getTotalBlackCombinations()) {
+            batchStartsBlack.replace(taskId, 0);
             batchStartsWhite.merge(taskId, numberWhiteCombinations, Integer::sum);
-        }
-        if (startWhiteCombination + numberWhiteCombinations >= task.getTotalWhiteCombinations() &&
-                startLineCombination + numberLineCombinations >= task.getTotalLineCombinations()) {
-            batchStartsLine.replace(taskId, 0L);
-            batchStartsWhite.replace(taskId, 0);
-            batchStartsBlack.merge(taskId, numberBlackCombinations, Integer::sum);
         }
         return batch;
     }
