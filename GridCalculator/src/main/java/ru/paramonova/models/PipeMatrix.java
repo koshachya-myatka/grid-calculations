@@ -345,26 +345,9 @@ public class PipeMatrix {
                 if (matrix[x][y] > 0 && !visited[x][y]) {
                     return false;
                 }
-                if (numConnectionLine(matrix, x, y) != 2) {
-                    return false;
-                }
             }
         }
         return true;
-    }
-
-    private int numConnectionLine(int[][] m, int x, int y) {
-        int count = 0;
-        int pos = m[x][y];
-        if (x > 0 && m[x - 1][y] > 0 &&
-                allowedLineXPositions.get(m[x - 1][y]).contains(pos)) count++;
-        if (x < length - 1 && m[x + 1][y] > 0 &&
-                allowedLineXPositions.get(pos).contains(m[x + 1][y])) count++;
-        if (y > 0 && m[x][y - 1] != 0 &&
-                allowedLineYPositions.get(m[x][y - 1]).contains(pos)) count++;
-        if (y < width - 1 && m[x][y + 1] != 0 &&
-                allowedLineYPositions.get(pos).contains(m[x][y + 1])) count++;
-        return count;
     }
 
     private void tryMove(int[][] matrix, boolean[][] visited, int x, int y) {
