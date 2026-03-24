@@ -43,13 +43,9 @@ public class MyGrpcClient {
         this.asyncStub = GridServiceGrpc.newStub(channel);
     }
 
-    public int addTask(String filePath) throws IOException {
-        Path path = Paths.get(filePath);
-        byte[] fileData = Files.readAllBytes(path);
-        String fileName = path.getFileName().toString();
-        FileRequest request = FileRequest.newBuilder()
-                .setFileName(fileName)
-                .setFileData(ByteString.copyFrom(fileData))
+    public int addTask(String jsonString) throws IOException {
+        TaskJsonRequest request = TaskJsonRequest.newBuilder()
+                .setJsonString(jsonString)
                 .build();
         TaskIdResponse response = blockingStub.addTask(request);
         System.out.println("Задача " + response.getTaskId() + " создана\n");

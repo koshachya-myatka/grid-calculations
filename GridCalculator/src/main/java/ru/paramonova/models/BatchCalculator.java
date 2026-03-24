@@ -16,20 +16,23 @@ public class BatchCalculator {
             throw new RuntimeException("Полученная подзадача не относится к полученной задаче");
         }
         List<Result> results = new ArrayList<>();
-        int startB = batch.getStartBlackCombination();
-        int endB = startB + batch.getNumberBlackCombinations();
-        int startW = batch.getStartWhiteCombination();
-        int endW = startW + batch.getNumberWhiteCombinations();
+        long startB = batch.getStartBlackCombination();
+        long endB = startB + batch.getNumberBlackCombinations();
+        long startW = batch.getStartWhiteCombination();
+        long endW = startW + batch.getNumberWhiteCombinations();
         int blackCirclesNumber = task.getBlackCircles().size();
         int whiteCirclesNumber = task.getWhiteCircles().size();
-        for (int i = startB; i < endB; i++) {
-            for (int j = startW; j < endW; j++) {
+        for (long i = startB; i < endB; i++) {
+            for (long j = startW; j < endW; j++) {
                 List<Pipe> pipes = new ArrayList<>();
                 List<Integer> positionBlack = numberToPositionCombination(4, blackCirclesNumber, i);
                 List<Integer> positionWhite = numberToPositionCombination(12, whiteCirclesNumber, j);
                 pipes.addAll(createPipes(positionBlack, task.getBlackCircles()));
                 pipes.addAll(createPipes(positionWhite, task.getWhiteCircles()));
-                results.add(calculateCombination(batch, task, pipes));
+                Result currRes = calculateCombination(batch, task, pipes);
+                if (currRes.isConnected()) {
+                    results.add(currRes);
+                }
             }
         }
         return results;
@@ -56,10 +59,10 @@ public class BatchCalculator {
         return pipes;
     }
 
-    private List<Integer> numberToPositionCombination(int alphabetLength, int circlesNumber, int number) {
+    private List<Integer> numberToPositionCombination(int alphabetLength, int circlesNumber, long number) {
         List<Integer> pipePositions = new ArrayList<>();
         while (number > 0) {
-            pipePositions.add(number % alphabetLength);
+            pipePositions.add((int) number % alphabetLength);
             number /= alphabetLength;
         }
         while (pipePositions.size() < circlesNumber) {

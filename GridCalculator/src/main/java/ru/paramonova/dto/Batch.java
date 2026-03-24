@@ -9,12 +9,10 @@ import lombok.*;
 @Builder
 @ToString
 public class Batch {
-    int batchId;
+    long batchId;
     int taskId;
-    int startWhiteCombination;
-    int numberWhiteCombinations;
-    int startBlackCombination;
-    int numberBlackCombinations;
-    long startLineCombination;
-    long numberLineCombinations;
+    long startWhiteCombination;
+    long numberWhiteCombinations;
+    long startBlackCombination;
+    long numberBlackCombinations;
 }

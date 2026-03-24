@@ -1,71 +1,63 @@
 package ru.paramonova.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.paramonova.grpc.*;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ShaperService {
     // id таски - сама таска
-    private final Map<Integer, Task> tasks = new ConcurrentHashMap<>();
+    private final Map<Integer, Task> tasks = new HashMap<>();
+    //todo поменять список хранения батчей
     // id таски - список ее батчей
-    private final Map<Integer, List<Batch>> batches = new ConcurrentHashMap<>();
+    private final Map<Integer, List<Batch>> batches = new HashMap<>();
     // id таски - текущий стартовый номер комбинации белых кругов
-    private final Map<Integer, Integer> batchStartsWhite = new ConcurrentHashMap<>();
+    private final Map<Integer, Long> batchStartsWhite = new HashMap<>();
     // id таски - текущий стартовый номер комбинации черных кругов
-    private final Map<Integer, Integer> batchStartsBlack = new ConcurrentHashMap<>();
-    // id таски - список результатов решений для нее
-    private final Map<Integer, List<Result>> results = new ConcurrentHashMap<>();
-    private final AtomicInteger nextTaskId = new AtomicInteger(0);
-    private final AtomicInteger nextBatchId = new AtomicInteger(0);
+    private final Map<Integer, Long> batchStartsBlack = new HashMap<>();
+    // id таски - список успешных результатов решений для нее
+    private final Map<Integer, List<Result>> results = new HashMap<>();
+    private int nextTaskId = 0;
+    private long nextBatchId = 0L;
 
-    public Task addTask(String fileName, byte[] fileData) {
-        int taskId = nextTaskId.getAndIncrement();
-        Task task = createTask(taskId, fileName, fileData);
+    public Task addTask(String jsonString) {
+        int taskId = nextTaskId;
+        nextTaskId++;
+        Task task = createTask(taskId, jsonString);
         tasks.put(taskId, task);
         batches.put(taskId, new ArrayList<>());
         results.put(taskId, new ArrayList<>());
-        batchStartsWhite.put(taskId, 0);
-        batchStartsBlack.put(taskId, 0);
+        batchStartsWhite.put(taskId, 0L);
+        batchStartsBlack.put(taskId, 0L);
         return task;
     }
 
-    private Task createTask(int taskId, String fileName, byte[] fileData) {
+    private Task createTask(int taskId, String jsonString) {
         int fieldWidth = 0;
         int fieldLength = 0;
         List<Circle> whiteCircles = new ArrayList<>();
         List<Circle> blackCircles = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(new ByteArrayInputStream(fileData)))) {
-            String line;
-            if ((line = reader.readLine()) != null) {
-                String[] fieldSize = line.split(",");
-                if (fieldSize.length != 2) {
-                    throw new IllegalArgumentException("Неверный формат строки с размерами поля\n");
-                }
-                fieldWidth = Integer.parseInt(fieldSize[0].trim());
-                fieldLength = Integer.parseInt(fieldSize[1].trim());
-            } else {
-                throw new IllegalArgumentException("Файл пустой");
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            JsonNode rootNode = objectMapper.readTree(jsonString);
+            fieldWidth = rootNode.get("fieldWidth").asInt();
+            fieldLength = rootNode.get("fieldLength").asInt();
+            if (fieldWidth == 0 || fieldLength == 0) {
+                throw new IllegalArgumentException("Неверный формат данных с размерами поля\n");
             }
-            while ((line = reader.readLine()) != null) {
-                if (line.trim().isEmpty()) {
-                    continue;
-                }
-                String[] values = line.split(",");
-                if (values.length != 3) {
-                    throw new IllegalArgumentException("Неверный формат строки с описанием круга " + line + "\n");
-                }
-                int x = Integer.parseInt(values[0].trim());
-                int y = Integer.parseInt(values[1].trim());
-                boolean color = "1".equals(values[2].trim());
+            JsonNode circlesNode = rootNode.get("circles");
+            if (circlesNode == null || !circlesNode.isArray()) {
+                throw new IllegalArgumentException("Данные о кругах не заданы или заданы некорректно\n");
+            }
+            for (JsonNode circleNode : circlesNode) {
+                int x = circleNode.get("x").asInt();
+                int y = circleNode.get("y").asInt();
+                boolean color = circleNode.get("color").asBoolean();
                 if (x < 0 || x >= fieldLength || y < 0 || y >= fieldWidth) {
                     throw new IllegalArgumentException(
                             String.format("Круг с координатами (%d, %d) выходит за пределы поля\n", x, y)
@@ -82,8 +74,9 @@ public class ShaperService {
                     blackCircles.add(circle);
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException("Ошибка при чтении файла: " + fileName + "\n");
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new RuntimeException("Ошибка при чтении JSON: ", e);
         }
         return Task.newBuilder()
                 .setTaskId(taskId)
@@ -105,10 +98,10 @@ public class ShaperService {
         if (task == null) {
             return null;
         }
-        int totalW = task.getTotalWhiteCombinations();
-        int totalB = task.getTotalBlackCombinations();
-        int startWhiteCombination = batchStartsWhite.get(taskId);
-        int startBlackCombination = batchStartsBlack.get(taskId);
+        long totalW = task.getTotalWhiteCombinations();
+        long totalB = task.getTotalBlackCombinations();
+        long startWhiteCombination = batchStartsWhite.get(taskId);
+        long startBlackCombination = batchStartsBlack.get(taskId);
         if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
             //TODO добавить более адекватное закольцовывание, когда мы сгенерили все возможные батчи,
             // но у нас появился новый свободный воркер ?
@@ -117,10 +110,11 @@ public class ShaperService {
 //            }
             return null;
         }
-        int batchId = nextBatchId.getAndIncrement();
-        //todo
-        int numberWhiteCombinations = Math.min((int) Math.pow(12, 1), totalW - startWhiteCombination);
-        int numberBlackCombinations = Math.min((int) Math.pow(4, 1), totalB - startBlackCombination);
+        long batchId = nextBatchId;
+        nextBatchId++;
+        //todo выбери размер батча
+        long numberWhiteCombinations = Math.min((long) Math.pow(12, 3), totalW - startWhiteCombination);
+        long numberBlackCombinations = Math.min((long) Math.pow(4, 8), totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
                 .setTaskId(taskId)
@@ -131,15 +125,15 @@ public class ShaperService {
                 .build();
         List<Batch> currentTaskBatches = batches.get(taskId);
         currentTaskBatches.add(batch);
-        batchStartsBlack.merge(taskId, numberBlackCombinations, Integer::sum);
+        batchStartsBlack.merge(taskId, numberBlackCombinations, Long::sum);
         if (startBlackCombination + numberBlackCombinations >= task.getTotalBlackCombinations()) {
-            batchStartsBlack.replace(taskId, 0);
-            batchStartsWhite.merge(taskId, numberWhiteCombinations, Integer::sum);
+            batchStartsBlack.replace(taskId, 0L);
+            batchStartsWhite.merge(taskId, numberWhiteCombinations, Long::sum);
         }
         return batch;
     }
 
-    public void addResults(int taskId, int batchId, List<Result> newResults) {
+    public void addResults(int taskId, long batchId, List<Result> newResults) {
         if (results.get(taskId) == null) {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
@@ -156,9 +150,9 @@ public class ShaperService {
         if (batches.get(taskId) == null || results.get(taskId) == null) {
             throw new RuntimeException("Не были найдены батчи или результаты для задачи " + taskId);
         }
-        List<Integer> idsInResults = results.get(taskId)
+        List<Long> idsInResults = results.get(taskId)
                 .stream().map(Result::getBatchId).toList();
-        List<Integer> idsInBatches = batches.get(taskId)
+        List<Long> idsInBatches = batches.get(taskId)
                 .stream().map(Batch::getBatchId).toList();
         return idsInResults.containsAll(idsInBatches);
     }

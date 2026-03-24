@@ -10,7 +10,7 @@ import lombok.*;
 @ToString
 public class SolveRequest {
     int taskId;
-    int subtaskId;
+    long subtaskId;
     byte[] jarCalculator;
     String jsonTaskData;
     String jsonSubtaskData;

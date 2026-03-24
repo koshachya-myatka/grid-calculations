@@ -16,15 +16,15 @@ public class DistributorController {
     private final WorkerService workerService;
 
     @PostMapping("/tasks")
-    public ResponseEntity<String> addTask(@RequestBody String pathToFile) {
+    public ResponseEntity<String> addTask(@RequestBody String jsonString) {
         new Thread(() -> {
             try {
-                int taskId = gridClient.addTask(pathToFile);
+                int taskId = gridClient.addTask(jsonString);
                 gridClient.registerTask(taskId);
                 gridClient.getTaskInfo(taskId);
                 gridClient.streamBatches(taskId);
             } catch (Exception e) {
-                throw new RuntimeException("Не удалось добавить задачу из файла" + pathToFile + "\n", e);
+                throw new RuntimeException("Не удалось добавить задачу\n", e);
             }
         }).start();
         return ResponseEntity.ok("Задача принята");

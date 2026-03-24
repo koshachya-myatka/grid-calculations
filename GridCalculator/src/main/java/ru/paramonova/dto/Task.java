@@ -14,9 +14,8 @@ public class Task {
     int taskId;
     int fieldWidth;
     int fieldLength;
-    int totalWhiteCombinations;
-    int totalBlackCombinations;
-    long totalLineCombinations;
+    long totalWhiteCombinations;
+    long totalBlackCombinations;
     List<Circle> whiteCircles;
     List<Circle> blackCircles;
 }

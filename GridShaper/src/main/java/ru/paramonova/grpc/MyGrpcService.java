@@ -8,23 +8,23 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
     private final ShaperService shaperService;
-    private final ConcurrentHashMap<Integer, StreamObserver<BatchResponse>> activeStreams = new ConcurrentHashMap<>();
+    private final Map<Integer, StreamObserver<BatchResponse>> activeStreams = new HashMap<>();
 
     public MyGrpcService(ShaperService shaperService) {
         this.shaperService = shaperService;
     }
 
     @Override
-    public void addTask(FileRequest request, StreamObserver<TaskIdResponse> responseObserver) {
+    public void addTask(TaskJsonRequest request, StreamObserver<TaskIdResponse> responseObserver) {
         try {
-            System.out.println("Получен запрос на добавление задачи из файла: " + request.getFileName());
+            System.out.println("Получен запрос на добавление задачи");
             Task task = shaperService.addTask(
-                    request.getFileName(),
-                    request.getFileData().toByteArray()
+                    request.getJsonString()
             );
             TaskIdResponse response = TaskIdResponse.newBuilder()
                     .setTaskId(task.getTaskId())

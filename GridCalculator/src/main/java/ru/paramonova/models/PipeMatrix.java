@@ -31,7 +31,7 @@ public class PipeMatrix {
                     6, List.of(0, 2, 3, 4));
     private final Map<Integer, List<Integer>> forbiddenLineBorderXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> forbiddenLineBorderYPositions = new HashMap<>();
-    private final int batchId;
+    private final long batchId;
     private final int width;
     private final int length;
     private final List<Pipe> allPipes = new ArrayList<>();
@@ -39,7 +39,7 @@ public class PipeMatrix {
     private final List<Pipe> blackPipes = new ArrayList<>();
     private final int[][] matrix;
 
-    public PipeMatrix(int batchId, int width, int length, List<Pipe> pipes) {
+    public PipeMatrix(long batchId, int width, int length, List<Pipe> pipes) {
         this.batchId = batchId;
         this.width = width;
         this.length = length;
@@ -74,12 +74,12 @@ public class PipeMatrix {
         for (Pipe pipe : whitePipes) {
             if (pipe.getX() == 0 || pipe.getX() == length - 1) {
                 if (forbiddenWhitePipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                    return new Result(batchId, false, allPipes, new ArrayList<>());
+                    return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
                 }
             }
             if (pipe.getY() == 0 || pipe.getY() == width - 1) {
                 if (forbiddenWhitePipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                    return new Result(batchId, false, allPipes, new ArrayList<>());
+                    return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
                 }
             }
         }
@@ -87,16 +87,16 @@ public class PipeMatrix {
         for (Pipe pipe : blackPipes) {
             if ((pipe.getX() == 0 || pipe.getX() == length - 1)
                     && forbiddenBlackPipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                return new Result(batchId, false, allPipes, new ArrayList<>());
+                return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
             }
             if ((pipe.getY() == 0 || pipe.getY() == width - 1)
                     && forbiddenBlackPipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                return new Result(batchId, false, allPipes, new ArrayList<>());
+                return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
             }
         }
         // проверка, что линии из разобранных труб некорректно упираются в границу
         if (!pipeToLine()) {
-            return new Result(batchId, false, allPipes, new ArrayList<>());
+            return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
         }
         // перебор всех вариантов линий и проверка возможности соединения их
         return checkAllLineCombinations();
@@ -232,7 +232,7 @@ public class PipeMatrix {
         if (result != null) {
             return result;
         }
-        return new Result(batchId, false, allPipes, new ArrayList<>());
+        return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
     }
 
     private Result buildLine(int[][] matrix) {

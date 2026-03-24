@@ -1,0 +1,9 @@
+{
+  "fieldWidth": 4,
+  "fieldLength": 3,
+  "circles": [
+    { "x": 0, "y": 0, "color": 0 },
+    { "x": 0, "y": 3, "color": 0 },
+    { "x": 2, "y": 2, "color": 1 }
+  ]
+}

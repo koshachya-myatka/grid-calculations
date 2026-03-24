@@ -12,19 +12,19 @@ message Task {
     int32 taskId = 1;
     int32 fieldWidth = 2;
     int32 fieldLength = 3;
-    int32 totalWhiteCombinations = 4;
-    int32 totalBlackCombinations = 5;
+    int64 totalWhiteCombinations = 4;
+    int64 totalBlackCombinations = 5;
     repeated Circle whiteCircles = 6;
     repeated Circle blackCircles = 7;
 }
 
 message Batch {
-    int32 batchId = 1;
+    int64 batchId = 1;
     int32 taskId = 2;
-    int32 startWhiteCombination = 3;
-    int32 numberWhiteCombinations = 4;
-    int32 startBlackCombination = 5;
-    int32 numberBlackCombinations = 6;
+    int64 startWhiteCombination = 3;
+    int64 numberWhiteCombinations = 4;
+    int64 startBlackCombination = 5;
+    int64 numberBlackCombinations = 6;
 }
 
 message Pipe {
@@ -41,15 +41,14 @@ message Line {
 }
 
 message Result {
-    int32 batchId = 1;
+    int64 batchId = 1;
     bool connected = 2;
     repeated Pipe pipes = 3;
     repeated Line lines = 4;
 }
 
-message FileRequest {
-    string fileName = 1;
-    bytes fileData = 2;
+message TaskJsonRequest {
+    string jsonString = 1;
 }
 
 message TaskIdResponse {
@@ -75,7 +74,7 @@ message RegisterResponse {
 
 message ResultsRequest {
     int32 taskId = 1;
-    int32 batchId = 2;
+    int64 batchId = 2;
     repeated Result results = 3;
 }
 
@@ -84,7 +83,7 @@ message ResultsResponse {
 }
 
 service GridService {
-    rpc addTask(FileRequest) returns (TaskIdResponse);
+    rpc addTask(TaskJsonRequest) returns (TaskIdResponse);
     rpc registerTask(TaskRequest) returns (RegisterResponse);
     rpc getTaskInfo(TaskRequest) returns (TaskResponse);
     rpc getNextBatch(stream TaskRequest) returns (stream BatchResponse);
