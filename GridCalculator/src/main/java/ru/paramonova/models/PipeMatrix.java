@@ -53,7 +53,7 @@ public class PipeMatrix {
         }
         matrix = new int[length][width];
         for (int[] ints : matrix) {
-            Arrays.fill(ints, 0);
+            Arrays.fill(ints, -1);
         }
         forbiddenBlackPipeXPositions.put(0, List.of(0, 1));
         forbiddenBlackPipeXPositions.put(length - 1, List.of(2, 3));
@@ -108,16 +108,16 @@ public class PipeMatrix {
             int y = pipe.getY();
             switch (pipe.getPosition()) {
                 case 0:
-                    if (y + 1 < width && matrix[x][y + 1] != 0 && !allowedLineYPositions.get(5).contains(matrix[x][y + 1])) {
+                    if (y + 1 < width && matrix[x][y + 1] > 0 && !allowedLineYPositions.get(5).contains(matrix[x][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineXPositions.get(5).contains(matrix[x + 1][y])) {
+                    if (x + 1 < length && matrix[x + 1][y] > 0 && !allowedLineXPositions.get(5).contains(matrix[x + 1][y])) {
                         return false;
                     }
-                    if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x - 1][y + 1])) {
+                    if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] > 0 && !allowedLineYPositions.get(2).contains(matrix[x - 1][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && y - 1 >= 0 && matrix[x + 1][y - 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
+                    if (x + 1 < length && y - 1 >= 0 && matrix[x + 1][y - 1] > 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
                         return false;
                     }
                     matrix[x - 1][y] = 2;
@@ -125,16 +125,16 @@ public class PipeMatrix {
                     matrix[x][y] = 5;
                     break;
                 case 1:
-                    if (y + 2 < width && matrix[x][y + 2] != 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
+                    if (y + 2 < width && matrix[x][y + 2] > 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
                         return false;
                     }
-                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y + 1])) {
+                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] > 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
-                    if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x - 1][y + 1])) {
+                    if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] > 0 && !allowedLineYPositions.get(2).contains(matrix[x - 1][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineXPositions.get(4).contains(matrix[x + 1][y])) {
+                    if (x + 1 < length && matrix[x + 1][y] > 0 && !allowedLineXPositions.get(4).contains(matrix[x + 1][y])) {
                         return false;
                     }
                     matrix[x - 1][y] = 2;
@@ -142,16 +142,16 @@ public class PipeMatrix {
                     matrix[x][y + 1] = 1;
                     break;
                 case 2:
-                    if (y + 2 < width && matrix[x][y + 2] != 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
+                    if (y + 2 < width && matrix[x][y + 2] > 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
                         return false;
                     }
-                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y + 1])) {
+                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] > 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x + 1][y + 1])) {
+                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] > 0 && !allowedLineYPositions.get(2).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
-                    if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineXPositions.get(2).contains(matrix[x + 2][y])) {
+                    if (x + 2 < length && matrix[x + 2][y] > 0 && !allowedLineXPositions.get(2).contains(matrix[x + 2][y])) {
                         return false;
                     }
                     matrix[x][y] = 3;
@@ -159,16 +159,16 @@ public class PipeMatrix {
                     matrix[x + 1][y] = 2;
                     break;
                 default:
-                    if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] != 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
+                    if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] > 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
                         return false;
                     }
-                    if (y + 1 < width && matrix[x][y + 1] != 0 && !allowedLineYPositions.get(6).contains(matrix[x][y + 1])) {
+                    if (y + 1 < width && matrix[x][y + 1] > 0 && !allowedLineYPositions.get(6).contains(matrix[x][y + 1])) {
                         return false;
                     }
-                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(2).contains(matrix[x + 1][y + 1])) {
+                    if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] > 0 && !allowedLineYPositions.get(2).contains(matrix[x + 1][y + 1])) {
                         return false;
                     }
-                    if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineXPositions.get(2).contains(matrix[x + 2][y])) {
+                    if (x + 2 < length && matrix[x + 2][y] > 0 && !allowedLineXPositions.get(2).contains(matrix[x + 2][y])) {
                         return false;
                     }
                     matrix[x][y - 1] = 1;
@@ -188,32 +188,32 @@ public class PipeMatrix {
             int y = pipe.getY();
             List<Integer> lines = whiteLinePositions.get(pipe.getPosition());
             if (pipe.getPosition() <= 5) {
-                if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] != 0 && !allowedLineXPositions.get(lines.get(0)).contains(matrix[x + 1][y - 1])) {
+                if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] > 0 && !allowedLineXPositions.get(lines.get(0)).contains(matrix[x + 1][y - 1])) {
                     return false;
                 }
-                if (x + 1 < length && matrix[x + 1][y] != 0 && !allowedLineXPositions.get(lines.get(1)).contains(matrix[x + 1][y])) {
+                if (x + 1 < length && matrix[x + 1][y] > 0 && !allowedLineXPositions.get(lines.get(1)).contains(matrix[x + 1][y])) {
                     return false;
                 }
-                if (y + 1 < width && x + 1 < length && matrix[x + 1][y + 1] != 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
+                if (y + 1 < width && x + 1 < length && matrix[x + 1][y + 1] > 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
                     return false;
                 }
-                if (y + 2 < width && x + 1 < length && matrix[x + 1][y + 2] != 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 2])) {
+                if (y + 2 < width && x + 1 < length && matrix[x + 1][y + 2] > 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 2])) {
                     return false;
                 }
                 matrix[x][y - 1] = lines.get(0);
                 matrix[x][y] = lines.get(1);
                 matrix[x][y + 1] = lines.get(2);
             } else {
-                if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] != 0 && !allowedLineYPositions.get(lines.get(0)).contains(matrix[x - 1][y + 1])) {
+                if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] > 0 && !allowedLineYPositions.get(lines.get(0)).contains(matrix[x - 1][y + 1])) {
                     return false;
                 }
-                if (y + 1 < width && matrix[x][y + 1] != 0 && !allowedLineYPositions.get(lines.get(1)).contains(matrix[x][y + 1])) {
+                if (y + 1 < width && matrix[x][y + 1] > 0 && !allowedLineYPositions.get(lines.get(1)).contains(matrix[x][y + 1])) {
                     return false;
                 }
-                if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] != 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
+                if (x + 1 < length && y + 1 < width && matrix[x + 1][y + 1] > 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
                     return false;
                 }
-                if (x + 2 < length && matrix[x + 2][y] != 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 2][y])) {
+                if (x + 2 < length && matrix[x + 2][y] > 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 2][y])) {
                     return false;
                 }
                 matrix[x - 1][y] = lines.get(0);
@@ -228,203 +228,149 @@ public class PipeMatrix {
         int[][] currentMatrix = Arrays.stream(matrix)
                 .map(int[]::clone)
                 .toArray(int[][]::new);
-
-        Result result = dfs(currentMatrix);
-
+        Result result = buildLine(currentMatrix);
         if (result != null) {
             return result;
         }
-
         return new Result(batchId, false, allPipes, new ArrayList<>());
     }
 
-    private Result dfs(int[][] matrix) {
-        int[] cell = findNextCell(matrix);
-
-        if (cell == null) {
-            if (isSingleConnectedComponent(matrix)) {
-                return buildResult(matrix);
+    private Result buildLine(int[][] matrix) {
+        // ищем необработанную клетку с максимальным кол-вом соседей (хотя бы 1)
+        int[] coords = findNextCellWithNeighbor(matrix);
+        if (coords == null) {
+            if (isConnectedLine(matrix)) {
+                List<Line> lines = new ArrayList<>();
+                for (int x = 0; x < length; x++) {
+                    for (int y = 0; y < width; y++) {
+                        lines.add(new Line(x, y, matrix[x][y]));
+                    }
+                }
+                return new Result(batchId, true, allPipes, lines);
             }
             return null;
         }
-
-        int x = cell[0];
-        int y = cell[1];
-
+        int x = coords[0];
+        int y = coords[1];
+        // смотрим, есть ли хотя бы 1 допустимое положение линии для клетки
+        boolean hasValid = false;
         for (int pos = 0; pos <= 6; pos++) {
-
-            if (!isValidPlacement(matrix, x, y, pos)) continue;
-
-            matrix[x][y] = pos;
-
-            if (!checkLocalConsistency(matrix, x, y)) {
-                matrix[x][y] = 0;
+            if (isValidPlacement(matrix, x, y, pos)) {
+                hasValid = true;
+                break;
+            }
+        }
+        if (!hasValid) {
+            return null;
+        }
+        // ставим значение позиции линии для клетки и идем рекурсивно строить линию дальше
+        for (int pos = 0; pos <= 6; pos++) {
+            if (!isValidPlacement(matrix, x, y, pos)) {
                 continue;
             }
-
-            Result res = dfs(matrix);
-            if (res != null) return res;
-
-            matrix[x][y] = 0;
+            matrix[x][y] = pos;
+            Result res = buildLine(matrix);
+            if (res != null) {
+                return res;
+            }
         }
-
         return null;
     }
 
-    private int[] findNextCell(int[][] matrix) {
+    private int[] findNextCellWithNeighbor(int[][] matrix) {
+        int res[] = new int[]{-1, -1};
+        int num = 0;
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
-                if (matrix[x][y] == 0 && hasNeighbor(matrix, x, y)) {
-                    return new int[]{x, y};
+                if (matrix[x][y] == -1) {
+                    int currNum = numberNeighbors(matrix, x, y);
+                    if (currNum > num) {
+                        res[0] = x;
+                        res[1] = y;
+                        num = currNum;
+                    }
                 }
             }
         }
+        if (num > 0) {
+            return res;
+        }
         return null;
     }
 
-    private boolean hasNeighbor(int[][] m, int x, int y) {
-        return (x > 0 && m[x - 1][y] != 0)
-                || (x < length - 1 && m[x + 1][y] != 0)
-                || (y > 0 && m[x][y - 1] != 0)
-                || (y < width - 1 && m[x][y + 1] != 0);
+    private int numberNeighbors(int[][] m, int x, int y) {
+        int num = 0;
+        if (x > 0 && m[x - 1][y] > 0) num++;
+        if (x < length - 1 && m[x + 1][y] > 0) num++;
+        if (y > 0 && m[x][y - 1] > 0) num++;
+        if (y < width - 1 && m[x][y + 1] > 0) num++;
+        return num;
     }
 
     private boolean isValidPlacement(int[][] m, int x, int y, int pos) {
-
         // границы
         if (x == 0 && forbiddenLineBorderXPositions.get(0).contains(pos)) return false;
         if (x == length - 1 && forbiddenLineBorderXPositions.get(length - 1).contains(pos)) return false;
         if (y == 0 && forbiddenLineBorderYPositions.get(0).contains(pos)) return false;
         if (y == width - 1 && forbiddenLineBorderYPositions.get(width - 1).contains(pos)) return false;
-
         // соседи
-        if (x > 0 && m[x - 1][y] != 0 &&
+        if (x > 0 && m[x - 1][y] > 0 &&
                 !allowedLineXPositions.get(m[x - 1][y]).contains(pos)) return false;
-
-        if (y > 0 && m[x][y - 1] != 0 &&
+        if (y > 0 && m[x][y - 1] > 0 &&
                 !allowedLineYPositions.get(m[x][y - 1]).contains(pos)) return false;
-
-        if (x < length - 1 && m[x + 1][y] != 0 &&
+        if (x < length - 1 && m[x + 1][y] > 0 &&
                 !allowedLineXPositions.get(pos).contains(m[x + 1][y])) return false;
-
-        if (y < width - 1 && m[x][y + 1] != 0 &&
+        if (y < width - 1 && m[x][y + 1] > 0 &&
                 !allowedLineYPositions.get(pos).contains(m[x][y + 1])) return false;
-
         return true;
     }
 
-    private boolean checkLocalConsistency(int[][] m, int x, int y) {
-
-        int connections = countConnections(m, x, y);
-
-        // максимум 2 соединения
-        if (connections > 2) return false;
-
-        // если уже 1 соединение → должна быть возможность сделать второе
-        if (connections == 1 && !canHaveSecondConnection(m, x, y)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private int countConnections(int[][] m, int x, int y) {
-        int count = 0;
-        int pos = m[x][y];
-
-        if (x > 0 && m[x - 1][y] != 0 &&
-                allowedLineXPositions.get(pos).contains(m[x - 1][y])) count++;
-
-        if (x < length - 1 && m[x + 1][y] != 0 &&
-                allowedLineXPositions.get(pos).contains(m[x + 1][y])) count++;
-
-        if (y > 0 && m[x][y - 1] != 0 &&
-                allowedLineYPositions.get(pos).contains(m[x][y - 1])) count++;
-
-        if (y < width - 1 && m[x][y + 1] != 0 &&
-                allowedLineYPositions.get(pos).contains(m[x][y + 1])) count++;
-
-        return count;
-    }
-
-    private boolean canHaveSecondConnection(int[][] m, int x, int y) {
-
-        int pos = m[x][y];
-
-        // проверяем есть ли хотя бы один потенциальный сосед
-        if (x > 0 && m[x - 1][y] == 0) return true;
-        if (x < length - 1 && m[x + 1][y] == 0) return true;
-        if (y > 0 && m[x][y - 1] == 0) return true;
-        if (y < width - 1 && m[x][y + 1] == 0) return true;
-
-        return false;
-    }
-
-    private boolean isSingleConnectedComponent(int[][] m) {
-
+    private boolean isConnectedLine(int[][] matrix) {
         boolean[][] visited = new boolean[length][width];
         int startX = -1, startY = -1;
-
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
-                if (m[x][y] != 0) {
+                if (matrix[x][y] != 0) {
                     startX = x;
                     startY = y;
                     break;
                 }
             }
         }
-
         if (startX == -1) return false;
-
-        dfsVisit(m, visited, startX, startY);
-
+        tryMove(matrix, visited, startX, startY);
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
-                if (m[x][y] != 0 && !visited[x][y]) {
+                if (matrix[x][y] != 0 && !visited[x][y]) {
                     return false;
                 }
             }
         }
-
         return true;
     }
 
-    private void dfsVisit(int[][] m, boolean[][] visited, int x, int y) {
+    private void tryMove(int[][] matrix, boolean[][] visited, int x, int y) {
         visited[x][y] = true;
-
-        int pos = m[x][y];
-
-        if (x > 0 && !visited[x - 1][y] && m[x - 1][y] != 0 &&
-                allowedLineXPositions.get(pos).contains(m[x - 1][y])) {
-            dfsVisit(m, visited, x - 1, y);
+        int pos = matrix[x][y];
+        // вправо
+        if (y < width - 1 && !visited[x][y + 1] && matrix[x][y + 1] != 0 &&
+                allowedLineYPositions.get(pos).contains(matrix[x][y + 1])) {
+            tryMove(matrix, visited, x, y + 1);
         }
-
-        if (x < length - 1 && !visited[x + 1][y] && m[x + 1][y] != 0 &&
-                allowedLineXPositions.get(pos).contains(m[x + 1][y])) {
-            dfsVisit(m, visited, x + 1, y);
+        // вниз
+        if (x < length - 1 && !visited[x + 1][y] && matrix[x + 1][y] != 0 &&
+                allowedLineXPositions.get(pos).contains(matrix[x + 1][y])) {
+            tryMove(matrix, visited, x + 1, y);
         }
-
-        if (y > 0 && !visited[x][y - 1] && m[x][y - 1] != 0 &&
-                allowedLineYPositions.get(pos).contains(m[x][y - 1])) {
-            dfsVisit(m, visited, x, y - 1);
+        // влево
+        if (y > 0 && !visited[x][y - 1] && matrix[x][y - 1] != 0 &&
+                allowedLineYPositions.get(matrix[x][y - 1]).contains(pos)) {
+            tryMove(matrix, visited, x, y - 1);
         }
-
-        if (y < width - 1 && !visited[x][y + 1] && m[x][y + 1] != 0 &&
-                allowedLineYPositions.get(pos).contains(m[x][y + 1])) {
-            dfsVisit(m, visited, x, y + 1);
+        // вверх
+        if (x > 0 && !visited[x - 1][y] && matrix[x - 1][y] != 0 &&
+                allowedLineXPositions.get(matrix[x - 1][y]).contains(pos)) {
+            tryMove(matrix, visited, x - 1, y);
         }
-    }
-
-    private Result buildResult(int[][] m) {
-        List<Line> lines = new ArrayList<>();
-
-        for (int x = 0; x < length; x++) {
-            for (int y = 0; y < width; y++) {
-                lines.add(new Line(x, y, m[x][y]));
-            }
-        }
-
-        return new Result(batchId, true, allPipes, lines);
     }
 }
