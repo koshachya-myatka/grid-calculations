@@ -3,18 +3,17 @@ package ru.paramonova.services;
 import org.springframework.stereotype.Service;
 import ru.paramonova.dto.WorkerInfo;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class WorkerService {
-    private final Map<Integer, WorkerInfo> workers = new ConcurrentHashMap<>();
-    private final AtomicInteger nextWorkerId = new AtomicInteger(0);
+    private final Map<Integer, WorkerInfo> workers = new HashMap<>();
+    private int nextWorkerId = 0;
 
     public int registerWorker(String address) {
-        int workerId = nextWorkerId.getAndIncrement();
+        int workerId = nextWorkerId++;
         WorkerInfo worker = new WorkerInfo(workerId, address);
         workers.put(workerId, worker);
         return workerId;

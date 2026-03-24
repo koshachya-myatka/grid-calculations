@@ -38,7 +38,6 @@ public class WorkerService {
     private final Map<Integer, Method> mainMethods = new HashMap<>();
 
     public void solveSubtask(SolveRequest request) {
-        //todo заполнить по примеру с возвратом статуса занятости?
         try {
             if (request.getJsonTaskData() != null) {
                 setTaskData(request.getTaskId(), request.getJsonTaskData(), request.getJarCalculator());

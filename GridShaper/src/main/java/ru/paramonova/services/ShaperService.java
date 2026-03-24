@@ -5,17 +5,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ru.paramonova.grpc.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ShaperService {
     // id таски - сама таска
     private final Map<Integer, Task> tasks = new HashMap<>();
-    //todo поменять список хранения батчей
+    //todo поменять способ хранения батчей
     // id таски - список ее батчей
     private final Map<Integer, List<Batch>> batches = new HashMap<>();
+    // id таски - ее общее кол-во батчей
+    private final Map<Integer, Long> taskTotalBatches = new HashMap<>();
+    // id таски - текущий номер ее батча
+    private final Map<Integer, Long> taskCurrentBatchNum = new HashMap<>();
     // id таски - текущий стартовый номер комбинации белых кругов
     private final Map<Integer, Long> batchStartsWhite = new HashMap<>();
     // id таски - текущий стартовый номер комбинации черных кругов
@@ -26,14 +27,18 @@ public class ShaperService {
     private long nextBatchId = 0L;
 
     public Task addTask(String jsonString) {
-        int taskId = nextTaskId;
-        nextTaskId++;
+        int taskId = nextTaskId++;
         Task task = createTask(taskId, jsonString);
         tasks.put(taskId, task);
-        batches.put(taskId, new ArrayList<>());
+        long totalBatches = (long) Math.ceil((double) (task.getTotalBlackCombinations() * task.getTotalWhiteCombinations())
+                / (long) Math.pow(4, 8) * (long) Math.pow(12, 3));
+        taskTotalBatches.put(taskId, totalBatches);
+        taskCurrentBatchNum.put(taskId, 0L);
         results.put(taskId, new ArrayList<>());
         batchStartsWhite.put(taskId, 0L);
         batchStartsBlack.put(taskId, 0L);
+        //todo временно, убрать при смене хранения батчей
+        batches.put(taskId, new ArrayList<>());
         return task;
     }
 
@@ -75,15 +80,14 @@ public class ShaperService {
                 }
             }
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
             throw new RuntimeException("Ошибка при чтении JSON: ", e);
         }
         return Task.newBuilder()
                 .setTaskId(taskId)
                 .setFieldWidth(fieldWidth)
                 .setFieldLength(fieldLength)
-                .setTotalWhiteCombinations((int) Math.pow(12, whiteCircles.size()))
-                .setTotalBlackCombinations((int) Math.pow(4, blackCircles.size()))
+                .setTotalWhiteCombinations((long) Math.pow(12, whiteCircles.size()))
+                .setTotalBlackCombinations((long) Math.pow(4, blackCircles.size()))
                 .addAllWhiteCircles(whiteCircles)
                 .addAllBlackCircles(blackCircles)
                 .build();
@@ -98,21 +102,21 @@ public class ShaperService {
         if (task == null) {
             return null;
         }
+        if (isLastBatch(taskId)) {
+            return null;
+        }
         long totalW = task.getTotalWhiteCombinations();
         long totalB = task.getTotalBlackCombinations();
         long startWhiteCombination = batchStartsWhite.get(taskId);
         long startBlackCombination = batchStartsBlack.get(taskId);
         if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
-            //TODO добавить более адекватное закольцовывание, когда мы сгенерили все возможные батчи,
-            // но у нас появился новый свободный воркер ?
-//            if (batches.get(taskId) != null && !batches.get(taskId).isEmpty()) {
-//                return batches.get(taskId).getFirst();
-//            }
+            //todo добавить сюда закольцовывание при отвале воркеров и потере решений
+            // (отправление батчей без результатов еще раз, мб ориентироваться на статус
+            // и время отправки батча)
             return null;
         }
-        long batchId = nextBatchId;
-        nextBatchId++;
-        //todo выбери размер батча
+        long batchId = nextBatchId++;
+        // определение размера батча по степеням в комбинациях
         long numberWhiteCombinations = Math.min((long) Math.pow(12, 3), totalW - startWhiteCombination);
         long numberBlackCombinations = Math.min((long) Math.pow(4, 8), totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
@@ -123,58 +127,55 @@ public class ShaperService {
                 .setStartBlackCombination(startBlackCombination)
                 .setNumberBlackCombinations(numberBlackCombinations)
                 .build();
-        List<Batch> currentTaskBatches = batches.get(taskId);
-        currentTaskBatches.add(batch);
+        // подсчет новых стартовых значений для следующего батча
         batchStartsBlack.merge(taskId, numberBlackCombinations, Long::sum);
         if (startBlackCombination + numberBlackCombinations >= task.getTotalBlackCombinations()) {
             batchStartsBlack.replace(taskId, 0L);
             batchStartsWhite.merge(taskId, numberWhiteCombinations, Long::sum);
         }
+        // увеличиваем кол-во уже прошедших батчей задачи
+        taskCurrentBatchNum.merge(taskId, 1L, Long::sum);
+        //todo временно, убрать при смене хранения батчей
+        List<Batch> currentTaskBatches = batches.get(taskId);
+        currentTaskBatches.add(batch);
         return batch;
+    }
+
+    private boolean isLastBatch(int taskId) {
+        return Objects.equals(taskCurrentBatchNum.get(taskId), taskTotalBatches.get(taskId));
     }
 
     public void addResults(int taskId, long batchId, List<Result> newResults) {
         if (results.get(taskId) == null) {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
-        List<Result> currentResults = results.get(taskId);
-        currentResults.addAll(newResults);
-        System.out.println("Добавлено " + newResults.size() + " результатов для задачи " + taskId + "\n");
-        //todo придумать варик получше
-        if (isLastResult(taskId)) {
+        //todo тут добавить смену статуса у батча, когда мы получили результаты для него
+
+        if (!newResults.isEmpty()) {
+            List<Result> currentResults = results.get(taskId);
+            currentResults.addAll(newResults);
+            taskCurrentBatchNum.replace(taskId, taskTotalBatches.get(taskId));
+        }
+        if (isLastBatch(taskId)) {
             getResult(taskId);
         }
     }
 
-    private boolean isLastResult(int taskId) {
-        if (batches.get(taskId) == null || results.get(taskId) == null) {
-            throw new RuntimeException("Не были найдены батчи или результаты для задачи " + taskId);
-        }
-        List<Long> idsInResults = results.get(taskId)
-                .stream().map(Result::getBatchId).toList();
-        List<Long> idsInBatches = batches.get(taskId)
-                .stream().map(Batch::getBatchId).toList();
-        return idsInResults.containsAll(idsInBatches);
-    }
-
-    public Result getResult(int taskId) {
+    public void getResult(int taskId) {
         if (results.get(taskId) == null) {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
         List<Result> allResults = results.get(taskId);
-        Result finalResult = allResults.getFirst();
-        for (Result result : allResults) {
-            if (result.getConnected()) {
-                System.out.println("Успешное соединение:");
-                visualizeTaskSolution(taskId, result);
-                finalResult = result;
-            }
+        if (allResults.isEmpty()) {
+            System.out.println("Для задачи " + taskId + " не было найдено успешное решение");
+        } else {
+            System.out.println("Всего результатов: " + results.get(taskId).size());
+            visualizeTaskSolution(taskId, allResults.getFirst());
         }
-        System.out.println("Всего результатов: " + results.get(taskId).size());
-        return finalResult;
     }
 
     private void visualizeTaskSolution(int taskId, Result result) {
+        System.out.println("Успешное соединение:");
         Task task = tasks.get(taskId);
         if (task == null) {
             throw new RuntimeException("Не найдена задача " + taskId + "\n");
@@ -187,9 +188,9 @@ public class ShaperService {
         for (Line line : result.getLinesList()) {
             matrix[line.getX()][line.getY()] = lineSymbols.get(line.getPosition());
         }
-        for (Pipe pipe : result.getPipesList()) {
-            matrix[pipe.getX()][pipe.getY()] = pipe.getColor() ? circleSymbols.get(1) : circleSymbols.get(0);
-        }
+//        for (Pipe pipe : result.getPipesList()) {
+//            matrix[pipe.getX()][pipe.getY()] = pipe.getColor() ? circleSymbols.get(1) : circleSymbols.get(0);
+//        }
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
                 System.out.print(matrix[x][y] + " ");

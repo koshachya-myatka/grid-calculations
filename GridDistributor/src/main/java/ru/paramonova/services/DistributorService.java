@@ -9,20 +9,16 @@ import ru.paramonova.dto.SolveRequest;
 import ru.paramonova.dto.WorkerInfo;
 import ru.paramonova.grpc.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class DistributorService {
     private final WorkerService workerService;
     // ключи - id таски
-    private final Map<Integer, Task> tasks = new ConcurrentHashMap<>();
-    private final Map<Integer, byte[]> jars = new ConcurrentHashMap<>();
-    private final Map<Integer, List<Result>> results = new ConcurrentHashMap<>();
+    private final Map<Integer, Task> tasks = new HashMap<>();
+    private final Map<Integer, byte[]> jars = new HashMap<>();
+    private final Map<Integer, List<Result>> results = new HashMap<>();
 
     public void registerTask(Task task, byte[] jarBytes) {
         int taskId = task.getTaskId();
@@ -35,13 +31,13 @@ public class DistributorService {
         return tasks.get(taskId);
     }
 
-    public void trySendSubtask(Batch batch) {
+    public boolean trySendSubtask(Batch batch) {
         if (batch == null) {
-            return;
+            return false;
         }
         Optional<WorkerInfo> workerOptional = workerService.findFreeWorker();
         if (workerOptional.isEmpty()) {
-            return;
+            return false;
         }
         WorkerInfo worker = workerOptional.get();
         try {
@@ -63,21 +59,25 @@ public class DistributorService {
                 request.setJsonTaskData(resultTaskJson);
                 worker.addTaskId(task.getTaskId());
             }
-            sendSubtask(worker, request);
+            if (!sendSubtask(worker, request)) {
+                return false;
+            }
         } catch (Exception e) {
             workerService.releaseWorker(worker.getWorkerId());
             throw new RuntimeException("Ошибка при отправке батча на воркер", e);
         }
+        return true;
     }
 
-    private void sendSubtask(WorkerInfo worker, SolveRequest request) {
+    private boolean sendSubtask(WorkerInfo worker, SolveRequest request) {
         RestTemplate restTemplate = new RestTemplate();
         String url = worker.getAddress() + "/solveSubtask";
-        restTemplate.postForEntity(url, request, Void.class);
-        //todo сделать удаление воркера при его отвале
-//        if () {
-//            workerService.removeWorker(worker.getWorkerId());
-//        }
+        ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            workerService.removeWorker(worker.getWorkerId());
+            return false;
+        }
+        return true;
     }
 
     public void addResults(int taskId, List<Result> newResults) {

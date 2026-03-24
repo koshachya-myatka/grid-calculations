@@ -1,6 +1,5 @@
 package ru.paramonova.grpc;
 
-import com.google.protobuf.ByteString;
 import com.google.protobuf.util.JsonFormat;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -12,9 +11,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
@@ -103,7 +99,9 @@ public class MyGrpcClient {
                         .append("Стартовый номер комбинации для черных кругов: ").append(batch.getStartBlackCombination()).append("\n")
                         .append("Кол-во комбинаций для черных кругов: ").append(batch.getNumberBlackCombinations()).append("\n");
                 System.out.println(sb);
-                distributorService.trySendSubtask(batch);
+                if (!distributorService.trySendSubtask(batch)) {
+                    addFreeWorker();
+                }
             }
 
             @Override
