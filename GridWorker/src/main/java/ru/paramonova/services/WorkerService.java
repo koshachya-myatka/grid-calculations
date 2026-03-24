@@ -140,6 +140,7 @@ public class WorkerService {
                 result = mainMethod.invoke(calculatorInstance, args);
                 sendResult(request, result);
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new RuntimeException("Не удалось запустить метод Main\n" + e);
             }
         }).start();

@@ -30,8 +30,8 @@ public class ShaperService {
         int taskId = nextTaskId++;
         Task task = createTask(taskId, jsonString);
         tasks.put(taskId, task);
-        long totalBatches = (long) Math.ceil((double) (task.getTotalBlackCombinations() * task.getTotalWhiteCombinations())
-                / (long) Math.pow(4, 8) * (long) Math.pow(12, 3));
+        long totalBatches = (long) (Math.ceil((double) task.getTotalBlackCombinations() / (long) Math.pow(4, 8)) *
+                Math.ceil((double) task.getTotalWhiteCombinations() / (long) Math.pow(12, 3)));
         taskTotalBatches.put(taskId, totalBatches);
         taskCurrentBatchNum.put(taskId, 0L);
         results.put(taskId, new ArrayList<>());
@@ -188,9 +188,9 @@ public class ShaperService {
         for (Line line : result.getLinesList()) {
             matrix[line.getX()][line.getY()] = lineSymbols.get(line.getPosition());
         }
-//        for (Pipe pipe : result.getPipesList()) {
-//            matrix[pipe.getX()][pipe.getY()] = pipe.getColor() ? circleSymbols.get(1) : circleSymbols.get(0);
-//        }
+        for (Pipe pipe : result.getPipesList()) {
+            matrix[pipe.getX()][pipe.getY()] = pipe.getColor() ? circleSymbols.get(1) : circleSymbols.get(0);
+        }
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
                 System.out.print(matrix[x][y] + " ");

@@ -197,7 +197,7 @@ public class PipeMatrix {
                 if (y + 1 < width && x + 1 < length && matrix[x + 1][y + 1] > 0 && !allowedLineXPositions.get(lines.get(2)).contains(matrix[x + 1][y + 1])) {
                     return false;
                 }
-                if (y + 2 < width && x + 1 < length && matrix[x + 1][y + 2] > 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x + 1][y + 2])) {
+                if (y + 2 < width && matrix[x][y + 2] > 0 && !allowedLineYPositions.get(lines.get(2)).contains(matrix[x][y + 2])) {
                     return false;
                 }
                 matrix[x][y - 1] = lines.get(0);
@@ -273,6 +273,7 @@ public class PipeMatrix {
             if (res != null) {
                 return res;
             }
+            matrix[x][y] = -1;
         }
         return null;
     }
@@ -341,12 +342,29 @@ public class PipeMatrix {
         tryMove(matrix, visited, startX, startY);
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
-                if (matrix[x][y] != 0 && !visited[x][y]) {
+                if (matrix[x][y] > 0 && !visited[x][y]) {
+                    return false;
+                }
+                if (numConnectionLine(matrix, x, y) != 2) {
                     return false;
                 }
             }
         }
         return true;
+    }
+
+    private int numConnectionLine(int[][] m, int x, int y) {
+        int count = 0;
+        int pos = m[x][y];
+        if (x > 0 && m[x - 1][y] > 0 &&
+                allowedLineXPositions.get(m[x - 1][y]).contains(pos)) count++;
+        if (x < length - 1 && m[x + 1][y] > 0 &&
+                allowedLineXPositions.get(pos).contains(m[x + 1][y])) count++;
+        if (y > 0 && m[x][y - 1] != 0 &&
+                allowedLineYPositions.get(m[x][y - 1]).contains(pos)) count++;
+        if (y < width - 1 && m[x][y + 1] != 0 &&
+                allowedLineYPositions.get(pos).contains(m[x][y + 1])) count++;
+        return count;
     }
 
     private void tryMove(int[][] matrix, boolean[][] visited, int x, int y) {
@@ -356,16 +374,19 @@ public class PipeMatrix {
         if (y < width - 1 && !visited[x][y + 1] && matrix[x][y + 1] != 0 &&
                 allowedLineYPositions.get(pos).contains(matrix[x][y + 1])) {
             tryMove(matrix, visited, x, y + 1);
+            return;
         }
         // вниз
         if (x < length - 1 && !visited[x + 1][y] && matrix[x + 1][y] != 0 &&
                 allowedLineXPositions.get(pos).contains(matrix[x + 1][y])) {
             tryMove(matrix, visited, x + 1, y);
+            return;
         }
         // влево
         if (y > 0 && !visited[x][y - 1] && matrix[x][y - 1] != 0 &&
                 allowedLineYPositions.get(matrix[x][y - 1]).contains(pos)) {
             tryMove(matrix, visited, x, y - 1);
+            return;
         }
         // вверх
         if (x > 0 && !visited[x - 1][y] && matrix[x - 1][y] != 0 &&
