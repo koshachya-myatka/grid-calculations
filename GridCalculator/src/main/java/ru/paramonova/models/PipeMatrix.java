@@ -108,6 +108,12 @@ public class PipeMatrix {
             int y = pipe.getY();
             switch (pipe.getPosition()) {
                 case 0:
+                    if (x > 0 && matrix[x - 1][y] > 0 && matrix[x - 1][y] != 2) {
+                        return false;
+                    }
+                    if (y > 0 && matrix[x][y - 1] > 0 && matrix[x][y - 1] != 1) {
+                        return false;
+                    }
                     if (y + 1 < width && matrix[x][y + 1] > 0 && !allowedLineYPositions.get(5).contains(matrix[x][y + 1])) {
                         return false;
                     }
@@ -125,6 +131,12 @@ public class PipeMatrix {
                     matrix[x][y] = 5;
                     break;
                 case 1:
+                    if (x > 0 && matrix[x - 1][y] > 0 && matrix[x - 1][y] != 2) {
+                        return false;
+                    }
+                    if (y < width - 1 && matrix[x][y + 1] > 0 && matrix[x][y + 1] != 1) {
+                        return false;
+                    }
                     if (y + 2 < width && matrix[x][y + 2] > 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
                         return false;
                     }
@@ -142,6 +154,12 @@ public class PipeMatrix {
                     matrix[x][y + 1] = 1;
                     break;
                 case 2:
+                    if (y < width - 1 && matrix[x][y + 1] > 0 && matrix[x][y + 1] != 1) {
+                        return false;
+                    }
+                    if (x < length - 1 && matrix[x + 1][y] > 0 && matrix[x + 1][y] != 2) {
+                        return false;
+                    }
                     if (y + 2 < width && matrix[x][y + 2] > 0 && !allowedLineYPositions.get(1).contains(matrix[x][y + 2])) {
                         return false;
                     }
@@ -159,6 +177,12 @@ public class PipeMatrix {
                     matrix[x + 1][y] = 2;
                     break;
                 default:
+                    if (y > 0 && matrix[x][y - 1] > 0 && matrix[x][y - 1] != 1) {
+                        return false;
+                    }
+                    if (x < length - 1 && matrix[x + 1][y] > 0 && matrix[x + 1][y] != 2) {
+                        return false;
+                    }
                     if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] > 0 && !allowedLineXPositions.get(1).contains(matrix[x + 1][y - 1])) {
                         return false;
                     }
@@ -188,6 +212,12 @@ public class PipeMatrix {
             int y = pipe.getY();
             List<Integer> lines = whiteLinePositions.get(pipe.getPosition());
             if (pipe.getPosition() <= 5) {
+                if (y > 0 && matrix[x][y - 1] > 0 && matrix[x][y - 1] != lines.get(0)) {
+                    return false;
+                }
+                if (y < width - 1 && matrix[x][y + 1] > 0 && matrix[x][y + 1] != lines.get(2)) {
+                    return false;
+                }
                 if (y - 1 >= 0 && x + 1 < length && matrix[x + 1][y - 1] > 0 && !allowedLineXPositions.get(lines.get(0)).contains(matrix[x + 1][y - 1])) {
                     return false;
                 }
@@ -204,6 +234,12 @@ public class PipeMatrix {
                 matrix[x][y] = lines.get(1);
                 matrix[x][y + 1] = lines.get(2);
             } else {
+                if (x > 0 && matrix[x - 1][y] > 0 && matrix[x - 1][y] != lines.get(0)) {
+                    return false;
+                }
+                if (x < length - 1 && matrix[x + 1][y] > 0 && matrix[x + 1][y] != lines.get(2)) {
+                    return false;
+                }
                 if (x - 1 >= 0 && y + 1 < width && matrix[x - 1][y + 1] > 0 && !allowedLineYPositions.get(lines.get(0)).contains(matrix[x - 1][y + 1])) {
                     return false;
                 }
@@ -343,6 +379,10 @@ public class PipeMatrix {
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
                 if (matrix[x][y] > 0 && !visited[x][y]) {
+                    return false;
+                }
+                //todo ВОТ ЭТОТ МОМЕНТ ПРОВЕРЬ
+                if (!isValidPlacement(matrix, x, y, matrix[x][y])) {
                     return false;
                 }
             }
