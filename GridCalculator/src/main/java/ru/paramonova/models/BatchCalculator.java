@@ -26,7 +26,7 @@ public class BatchCalculator {
             for (long j = startW; j < endW; j++) {
                 List<Pipe> pipes = new ArrayList<>();
                 List<Integer> positionBlack = numberToPositionCombination(4, blackCirclesNumber, i);
-                List<Integer> positionWhite = numberToPositionCombination(12, whiteCirclesNumber, j);
+                List<Integer> positionWhite = numberToPositionCombination(16, whiteCirclesNumber, j);
                 pipes.addAll(createPipes(positionBlack, task.getBlackCircles()));
                 pipes.addAll(createPipes(positionWhite, task.getWhiteCircles()));
                 Result currRes = calculateCombination(batch, task, pipes);

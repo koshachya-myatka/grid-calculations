@@ -26,12 +26,19 @@ public class ShaperService {
     private int nextTaskId = 0;
     private long nextBatchId = 0L;
 
+    public long getCountTotalBatches(int taskId) {
+        if (taskTotalBatches.get(taskId) == null) {
+            return 0;
+        }
+        return taskTotalBatches.get(taskId);
+    }
+
     public Task addTask(String jsonString) {
         int taskId = nextTaskId++;
         Task task = createTask(taskId, jsonString);
         tasks.put(taskId, task);
         long totalBatches = (long) (Math.ceil((double) task.getTotalBlackCombinations() / (long) Math.pow(4, 8)) *
-                Math.ceil((double) task.getTotalWhiteCombinations() / (long) Math.pow(12, 3)));
+                Math.ceil((double) task.getTotalWhiteCombinations() / (long) Math.pow(16, 3)));
         taskTotalBatches.put(taskId, totalBatches);
         taskCurrentBatchNum.put(taskId, 0L);
         results.put(taskId, new ArrayList<>());
@@ -86,7 +93,7 @@ public class ShaperService {
                 .setTaskId(taskId)
                 .setFieldWidth(fieldWidth)
                 .setFieldLength(fieldLength)
-                .setTotalWhiteCombinations((long) Math.pow(12, whiteCircles.size()))
+                .setTotalWhiteCombinations((long) Math.pow(16, whiteCircles.size()))
                 .setTotalBlackCombinations((long) Math.pow(4, blackCircles.size()))
                 .addAllWhiteCircles(whiteCircles)
                 .addAllBlackCircles(blackCircles)
@@ -117,7 +124,7 @@ public class ShaperService {
         }
         long batchId = nextBatchId++;
         // определение размера батча по степеням в комбинациях
-        long numberWhiteCombinations = Math.min((long) Math.pow(12, 3), totalW - startWhiteCombination);
+        long numberWhiteCombinations = Math.min((long) Math.pow(16, 3), totalW - startWhiteCombination);
         long numberBlackCombinations = Math.min((long) Math.pow(4, 8), totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
@@ -170,7 +177,9 @@ public class ShaperService {
             System.out.println("Для задачи " + taskId + " не было найдено успешное решение");
         } else {
             System.out.println("Всего результатов: " + results.get(taskId).size());
-            visualizeTaskSolution(taskId, allResults.getFirst());
+            for (Result result : allResults) {
+                visualizeTaskSolution(taskId, result);
+            }
         }
     }
 

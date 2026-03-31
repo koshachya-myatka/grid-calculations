@@ -1,0 +1,16 @@
+{
+  "fieldWidth": 7,
+  "fieldLength": 7,
+  "circles": [
+    { "x": 0, "y": 0, "color": 0 },
+    { "x": 1, "y": 3, "color": 1 },
+    { "x": 1, "y": 5, "color": 0 },
+    { "x": 1, "y": 6, "color": 1 },
+    { "x": 2, "y": 0, "color": 0 },
+    { "x": 3, "y": 0, "color": 0 },
+    { "x": 4, "y": 2, "color": 1 },
+    { "x": 4, "y": 5, "color": 1 },
+    { "x": 6, "y": 0, "color": 0 },
+    { "x": 6, "y": 6, "color": 0 }
+  ]
+}

@@ -29,6 +29,20 @@ public class PipeMatrix {
                     4, List.of(1, 5, 6),
                     5, List.of(0, 2, 3, 4),
                     6, List.of(0, 2, 3, 4));
+    private final Map<Integer, List<Integer>> allowedLineXMoves =
+            Map.of(1, List.of(),
+                    2, List.of(2, 4, 5),
+                    3, List.of(2, 4, 5),
+                    4, List.of(),
+                    5, List.of(),
+                    6, List.of(2, 4, 5));
+    private final Map<Integer, List<Integer>> allowedLineYMoves =
+            Map.of(1, List.of(1, 5, 6),
+                    2, List.of(),
+                    3, List.of(1, 5, 6),
+                    4, List.of(1, 5, 6),
+                    5, List.of(),
+                    6, List.of());
     private final Map<Integer, List<Integer>> forbiddenLineBorderXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> forbiddenLineBorderYPositions = new HashMap<>();
     private final long batchId;
@@ -59,10 +73,10 @@ public class PipeMatrix {
         forbiddenBlackPipeXPositions.put(length - 1, List.of(2, 3));
         forbiddenBlackPipeYPositions.put(0, List.of(0, 3));
         forbiddenBlackPipeYPositions.put(width - 1, List.of(1, 2));
-        forbiddenWhitePipeXPositions.put(0, List.of(1, 3, 4, 6, 7, 8, 9, 10, 11));
-        forbiddenWhitePipeXPositions.put(length - 1, List.of(0, 2, 5, 6, 7, 8, 9, 10, 11));
-        forbiddenWhitePipeYPositions.put(0, List.of(0, 1, 2, 3, 4, 5, 7, 9, 11));
-        forbiddenWhitePipeYPositions.put(width - 1, List.of(0, 1, 2, 3, 4, 5, 6, 8, 10));
+        forbiddenWhitePipeXPositions.put(0, List.of(1, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
+        forbiddenWhitePipeXPositions.put(length - 1, List.of(0, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
+        forbiddenWhitePipeYPositions.put(0, List.of(0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 14, 15));
+        forbiddenWhitePipeYPositions.put(width - 1, List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 15));
         forbiddenLineBorderXPositions.put(0, List.of(2, 4, 5));
         forbiddenLineBorderXPositions.put(length - 1, List.of(2, 3, 6));
         forbiddenLineBorderYPositions.put(0, List.of(1, 5, 6));
@@ -203,15 +217,15 @@ public class PipeMatrix {
         Map<Integer, List<Integer>> whiteLinePositions = new HashMap<>();
         whiteLinePositions.putAll(
                 Map.of(0, List.of(1, 1, 6), 1, List.of(1, 1, 5), 2, List.of(3, 1, 1), 3, List.of(4, 1, 1),
-                        4, List.of(4, 1, 5), 5, List.of(3, 1, 6)));
+                        4, List.of(4, 1, 5), 5, List.of(3, 1, 6), 6, List.of(4, 1, 6), 7, List.of(3, 1, 5)));
         whiteLinePositions.putAll(
-                Map.of(6, List.of(3, 2, 2), 7, List.of(6, 2, 2),
-                        8, List.of(2, 2, 4), 9, List.of(2, 2, 5), 10, List.of(3, 2, 4), 11, List.of(6, 2, 5)));
+                Map.of(8, List.of(2, 2, 4), 9, List.of(2, 2, 5), 10, List.of(3, 2, 4), 11, List.of(6, 2, 5),
+                        12, List.of(3, 2, 2), 13, List.of(6, 2, 2), 14, List.of(3, 2, 5), 15, List.of(6, 2, 4)));
         for (Pipe pipe : whitePipes) {
             int x = pipe.getX();
             int y = pipe.getY();
             List<Integer> lines = whiteLinePositions.get(pipe.getPosition());
-            if (pipe.getPosition() <= 5) {
+            if (pipe.getPosition() <= 7) {
                 if (y > 0 && matrix[x][y - 1] > 0 && matrix[x][y - 1] != lines.get(0)) {
                     return false;
                 }
@@ -305,7 +319,9 @@ public class PipeMatrix {
                 continue;
             }
             matrix[x][y] = pos;
-            Result res = buildLine(matrix);
+            Result res = buildLine(Arrays.stream(matrix)
+                    .map(int[]::clone)
+                    .toArray(int[][]::new));
             if (res != null) {
                 return res;
             }
@@ -316,7 +332,7 @@ public class PipeMatrix {
 
     private int[] findNextCellWithNeighbor(int[][] matrix) {
         int res[] = new int[]{-1, -1};
-        int num = 0;
+        int num = -1;
         for (int x = 0; x < length; x++) {
             for (int y = 0; y < width; y++) {
                 if (matrix[x][y] == -1) {
@@ -329,7 +345,7 @@ public class PipeMatrix {
                 }
             }
         }
-        if (num > 0) {
+        if (num > -1) {
             return res;
         }
         return null;
@@ -363,6 +379,13 @@ public class PipeMatrix {
     }
 
     private boolean isConnectedLine(int[][] matrix) {
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < width; y++) {
+                if (matrix[x][y] == -1) {
+                    return false;
+                }
+            }
+        }
         boolean[][] visited = new boolean[length][width];
         int startX = -1, startY = -1;
         for (int x = 0; x < length; x++) {
@@ -381,7 +404,6 @@ public class PipeMatrix {
                 if (matrix[x][y] > 0 && !visited[x][y]) {
                     return false;
                 }
-                //todo ВОТ ЭТОТ МОМЕНТ ПРОВЕРЬ
                 if (!isValidPlacement(matrix, x, y, matrix[x][y])) {
                     return false;
                 }
@@ -395,25 +417,25 @@ public class PipeMatrix {
         int pos = matrix[x][y];
         // вправо
         if (y < width - 1 && !visited[x][y + 1] && matrix[x][y + 1] != 0 &&
-                allowedLineYPositions.get(pos).contains(matrix[x][y + 1])) {
+                allowedLineYMoves.get(pos).contains(matrix[x][y + 1])) {
             tryMove(matrix, visited, x, y + 1);
             return;
         }
         // вниз
         if (x < length - 1 && !visited[x + 1][y] && matrix[x + 1][y] != 0 &&
-                allowedLineXPositions.get(pos).contains(matrix[x + 1][y])) {
+                allowedLineXMoves.get(pos).contains(matrix[x + 1][y])) {
             tryMove(matrix, visited, x + 1, y);
             return;
         }
         // влево
         if (y > 0 && !visited[x][y - 1] && matrix[x][y - 1] != 0 &&
-                allowedLineYPositions.get(matrix[x][y - 1]).contains(pos)) {
+                allowedLineYMoves.get(matrix[x][y - 1]).contains(pos)) {
             tryMove(matrix, visited, x, y - 1);
             return;
         }
         // вверх
         if (x > 0 && !visited[x - 1][y] && matrix[x - 1][y] != 0 &&
-                allowedLineXPositions.get(matrix[x - 1][y]).contains(pos)) {
+                allowedLineXMoves.get(matrix[x - 1][y]).contains(pos)) {
             tryMove(matrix, visited, x - 1, y);
         }
     }

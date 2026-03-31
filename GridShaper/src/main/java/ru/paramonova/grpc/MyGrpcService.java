@@ -31,7 +31,8 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                     .build();
             responseObserver.onNext(response);
             responseObserver.onCompleted();
-            System.out.printf("Задача %d создана%n%n", task.getTaskId());
+            System.out.printf("Задача %d создана, кол-во батчей: %d%n%n", task.getTaskId(),
+                    shaperService.getCountTotalBatches(task.getTaskId()));
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
                     .withDescription("Ошибка при создании задачи: " + e.getMessage())
