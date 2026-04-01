@@ -21,10 +21,7 @@ message Task {
 message Batch {
     int64 batchId = 1;
     int32 taskId = 2;
-    int64 startWhiteCombination = 3;
-    int64 numberWhiteCombinations = 4;
-    int64 startBlackCombination = 5;
-    int64 numberBlackCombinations = 6;
+    repeated PipeList combinations = 3;
 }
 
 message Pipe {
@@ -32,6 +29,10 @@ message Pipe {
     int32 y = 2;
     bool color = 3;
     int32 position = 4;
+}
+
+message PipeList {
+    repeated Pipe pipes = 1;
 }
 
 message Line {

@@ -9,10 +9,6 @@ import java.util.*;
 public class PipeMatrix {
     // x - вниз от 0 до length
     // y - вправо от 0 до width
-    private final Map<Integer, List<Integer>> forbiddenBlackPipeYPositions = new HashMap<>();
-    private final Map<Integer, List<Integer>> forbiddenBlackPipeXPositions = new HashMap<>();
-    private final Map<Integer, List<Integer>> forbiddenWhitePipeYPositions = new HashMap<>();
-    private final Map<Integer, List<Integer>> forbiddenWhitePipeXPositions = new HashMap<>();
     private final Map<Integer, List<Integer>> allowedLineXPositions =
             Map.of(0, List.of(0, 1, 3, 6),
                     1, List.of(0, 1, 3, 6),
@@ -69,14 +65,6 @@ public class PipeMatrix {
         for (int[] ints : matrix) {
             Arrays.fill(ints, -1);
         }
-        forbiddenBlackPipeXPositions.put(0, List.of(0, 1));
-        forbiddenBlackPipeXPositions.put(length - 1, List.of(2, 3));
-        forbiddenBlackPipeYPositions.put(0, List.of(0, 3));
-        forbiddenBlackPipeYPositions.put(width - 1, List.of(1, 2));
-        forbiddenWhitePipeXPositions.put(0, List.of(1, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
-        forbiddenWhitePipeXPositions.put(length - 1, List.of(0, 2, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15));
-        forbiddenWhitePipeYPositions.put(0, List.of(0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 14, 15));
-        forbiddenWhitePipeYPositions.put(width - 1, List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 15));
         forbiddenLineBorderXPositions.put(0, List.of(2, 4, 5));
         forbiddenLineBorderXPositions.put(length - 1, List.of(2, 3, 6));
         forbiddenLineBorderYPositions.put(0, List.of(1, 5, 6));
@@ -84,36 +72,14 @@ public class PipeMatrix {
     }
 
     public Result calculateResult() {
-        // проверка, что трубы упираются некорректно в границу
-        for (Pipe pipe : whitePipes) {
-            if (pipe.getX() == 0 || pipe.getX() == length - 1) {
-                if (forbiddenWhitePipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                    return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
-                }
-            }
-            if (pipe.getY() == 0 || pipe.getY() == width - 1) {
-                if (forbiddenWhitePipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                    return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
-                }
-            }
-        }
-        // проверка, что трубы упираются некорректно в границу
-        for (Pipe pipe : blackPipes) {
-            if ((pipe.getX() == 0 || pipe.getX() == length - 1)
-                    && forbiddenBlackPipeXPositions.get(pipe.getX()).contains(pipe.getPosition())) {
-                return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
-            }
-            if ((pipe.getY() == 0 || pipe.getY() == width - 1)
-                    && forbiddenBlackPipeYPositions.get(pipe.getY()).contains(pipe.getPosition())) {
-                return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
-            }
-        }
-        // проверка, что линии из разобранных труб некорректно упираются в границу
         if (!pipeToLine()) {
             return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
         }
-        // перебор всех вариантов линий и проверка возможности соединения их
-        return checkAllLineCombinations();
+        Result result = buildLine(matrix);
+        if (result != null) {
+            return result;
+        }
+        return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
     }
 
     private boolean pipeToLine() {
@@ -274,20 +240,10 @@ public class PipeMatrix {
         return true;
     }
 
-    private Result checkAllLineCombinations() {
-        int[][] currentMatrix = Arrays.stream(matrix)
-                .map(int[]::clone)
-                .toArray(int[][]::new);
-        Result result = buildLine(currentMatrix);
-        if (result != null) {
-            return result;
-        }
-        return new Result(batchId, false, new ArrayList<>(), new ArrayList<>());
-    }
-
     private Result buildLine(int[][] matrix) {
-        // ищем необработанную клетку с максимальным кол-вом соседей (хотя бы 1)
+        // ищем необработанную клетку с максимальным кол-вом соседей
         int[] coords = findNextCellWithNeighbor(matrix);
+        // ее нет - все клетки заполнены линиями, смотрим на соединябельность
         if (coords == null) {
             if (isConnectedLine(matrix)) {
                 List<Line> lines = new ArrayList<>();

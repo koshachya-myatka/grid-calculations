@@ -10,8 +10,6 @@ import java.util.List;
 @Setter
 @Builder
 @ToString
-public class Batch {
-    long batchId;
-    int taskId;
-    List<PipeList> combinations;
+public class PipeList {
+    List<Pipe> pipes;
 }
