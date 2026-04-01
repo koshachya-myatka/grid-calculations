@@ -13,22 +13,37 @@ public class ShaperService {
     //todo поменять способ хранения батчей
     // id таски - список ее батчей
     private final Map<Integer, List<Batch>> batches = new HashMap<>();
-    // id таски - закончились ли ее батчи
-    private final Map<Integer, Boolean> isTaskLastBatch = new HashMap<>();
-    private final Map<Integer, BatchCreator> batchCreators = new HashMap<>();
+    // id таски - ее общее кол-во батчей
+    private final Map<Integer, Long> taskTotalBatches = new HashMap<>();
+    // id таски - текущий номер ее батча
+    private final Map<Integer, Long> taskCurrentBatchNum = new HashMap<>();
+    // id таски - текущий стартовый номер комбинации белых кругов
+    private final Map<Integer, Long> batchStartsWhite = new HashMap<>();
+    // id таски - текущий стартовый номер комбинации черных кругов
+    private final Map<Integer, Long> batchStartsBlack = new HashMap<>();
     // id таски - список успешных результатов решений для нее
     private final Map<Integer, List<Result>> results = new HashMap<>();
     private int nextTaskId = 0;
     private long nextBatchId = 0L;
 
+    public long getCountTotalBatches(int taskId) {
+        if (taskTotalBatches.get(taskId) == null) {
+            return 0;
+        }
+        return taskTotalBatches.get(taskId);
+    }
 
     public Task addTask(String jsonString) {
         int taskId = nextTaskId++;
         Task task = createTask(taskId, jsonString);
         tasks.put(taskId, task);
-        batchCreators.put(taskId, new BatchCreator(task));
-        isTaskLastBatch.put(taskId, false);
+        long totalBatches = (long) (Math.ceil((double) task.getTotalBlackCombinations() / (long) Math.pow(4, 8)) *
+                Math.ceil((double) task.getTotalWhiteCombinations() / (long) Math.pow(16, 3)));
+        taskTotalBatches.put(taskId, totalBatches);
+        taskCurrentBatchNum.put(taskId, 0L);
         results.put(taskId, new ArrayList<>());
+        batchStartsWhite.put(taskId, 0L);
+        batchStartsBlack.put(taskId, 0L);
         //todo временно, убрать при смене хранения батчей
         batches.put(taskId, new ArrayList<>());
         return task;
@@ -94,30 +109,47 @@ public class ShaperService {
         if (task == null) {
             return null;
         }
-        //todo добавить сюда закольцовывание при отвале воркеров и потере решений
-        // (отправление батчей без результатов еще раз, мб ориентироваться на статус
-        // и время отправки батча)
-        long batchId = nextBatchId++;
-        List<PipeList> batchPipes = new ArrayList<>();
-        BatchCreator batchCreator = batchCreators.get(taskId);
-        while (batchPipes.size() < 5) {
-            PipeList pipeList = batchCreator.create();
-            if (batchCreator.isFinished()) break;
-            batchPipes.add(pipeList);
-        }
-        if (batchPipes.isEmpty()) {
-            isTaskLastBatch.replace(taskId, true);
+        if (isLastBatch(taskId)) {
             return null;
         }
+        long totalW = task.getTotalWhiteCombinations();
+        long totalB = task.getTotalBlackCombinations();
+        long startWhiteCombination = batchStartsWhite.get(taskId);
+        long startBlackCombination = batchStartsBlack.get(taskId);
+        if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
+            //todo добавить сюда закольцовывание при отвале воркеров и потере решений
+            // (отправление батчей без результатов еще раз, мб ориентироваться на статус
+            // и время отправки батча)
+            return null;
+        }
+        long batchId = nextBatchId++;
+        // определение размера батча по степеням в комбинациях
+        long numberWhiteCombinations = Math.min((long) Math.pow(16, 3), totalW - startWhiteCombination);
+        long numberBlackCombinations = Math.min((long) Math.pow(4, 8), totalB - startBlackCombination);
         Batch batch = Batch.newBuilder()
                 .setBatchId(batchId)
                 .setTaskId(taskId)
-                .addAllCombinations(batchPipes)
+                .setStartWhiteCombination(startWhiteCombination)
+                .setNumberWhiteCombinations(numberWhiteCombinations)
+                .setStartBlackCombination(startBlackCombination)
+                .setNumberBlackCombinations(numberBlackCombinations)
                 .build();
+        // подсчет новых стартовых значений для следующего батча
+        batchStartsBlack.merge(taskId, numberBlackCombinations, Long::sum);
+        if (startBlackCombination + numberBlackCombinations >= task.getTotalBlackCombinations()) {
+            batchStartsBlack.replace(taskId, 0L);
+            batchStartsWhite.merge(taskId, numberWhiteCombinations, Long::sum);
+        }
+        // увеличиваем кол-во уже прошедших батчей задачи
+        taskCurrentBatchNum.merge(taskId, 1L, Long::sum);
         //todo временно, убрать при смене хранения батчей
         List<Batch> currentTaskBatches = batches.get(taskId);
         currentTaskBatches.add(batch);
         return batch;
+    }
+
+    private boolean isLastBatch(int taskId) {
+        return Objects.equals(taskCurrentBatchNum.get(taskId), taskTotalBatches.get(taskId));
     }
 
     public void addResults(int taskId, long batchId, List<Result> newResults) {
@@ -125,15 +157,15 @@ public class ShaperService {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
         //todo тут добавить смену статуса у батча, когда мы получили результаты для него
+
         if (!newResults.isEmpty()) {
             List<Result> currentResults = results.get(taskId);
             currentResults.addAll(newResults);
+            taskCurrentBatchNum.replace(taskId, taskTotalBatches.get(taskId));
         }
-        if (isTaskLastBatch.get(taskId) == true) {
-            System.out.println("Зашел в последний результат");
+        if (isLastBatch(taskId)) {
             getResult(taskId);
         }
-        getResult(taskId);
     }
 
     public void getResult(int taskId) {

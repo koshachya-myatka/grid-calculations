@@ -91,8 +91,13 @@ public class MyGrpcClient {
                 receivedCount++;
                 Batch batch = response.getBatch();
                 StringBuilder sb = new StringBuilder();
-                sb.append("Получено:\nЗадача: ").append(batch.getTaskId()).append("\n")
-                        .append("Батч: ").append(batch.getBatchId()).append("\n");
+                sb.append("Задача: ").append(batch.getTaskId()).append("\n")
+                        .append("Батч: ").append(batch.getBatchId()).append("\n")
+                        .append("Текущая комбинация:\n")
+                        .append("Стартовый номер комбинации для белых кругов: ").append(batch.getStartWhiteCombination()).append("\n")
+                        .append("Кол-во комбинаций для белых кругов: ").append(batch.getNumberWhiteCombinations()).append("\n")
+                        .append("Стартовый номер комбинации для черных кругов: ").append(batch.getStartBlackCombination()).append("\n")
+                        .append("Кол-во комбинаций для черных кругов: ").append(batch.getNumberBlackCombinations()).append("\n");
                 System.out.println(sb);
                 if (!distributorService.trySendSubtask(batch)) {
                     addFreeWorker();

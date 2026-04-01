@@ -2,8 +2,6 @@ package ru.paramonova.dto;
 
 import lombok.*;
 
-import java.util.List;
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -13,5 +11,8 @@ import java.util.List;
 public class Batch {
     long batchId;
     int taskId;
-    List<PipeList> combinations;
+    long startWhiteCombination;
+    long numberWhiteCombinations;
+    long startBlackCombination;
+    long numberBlackCombinations;
 }
