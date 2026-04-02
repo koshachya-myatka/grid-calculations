@@ -15,6 +15,10 @@ public class WorkerController {
 
     @PostMapping("/solveSubtask")
     public ResponseEntity<Void> solveSubtask(@RequestBody SolveRequest request) {
+        if (!workerService.tryLock()) {
+            //todo добавить сообщение этому адресу, что освободился
+            return ResponseEntity.status(403).build();
+        }
         workerService.solveSubtask(request);
         return ResponseEntity.ok().build();
     }

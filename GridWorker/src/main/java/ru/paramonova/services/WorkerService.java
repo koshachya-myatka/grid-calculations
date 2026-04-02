@@ -22,12 +22,14 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 @Service
 public class WorkerService {
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final AtomicBoolean busy = new AtomicBoolean(false);
     @Setter
     private int workerId;
     // все id задач, что он когда-либо решал
@@ -36,6 +38,14 @@ public class WorkerService {
     private final Map<Integer, String> tasksData = new HashMap<>();
     private final Map<Integer, Object> calculatorInstances = new HashMap<>();
     private final Map<Integer, Method> mainMethods = new HashMap<>();
+
+    public boolean tryLock() {
+        return busy.compareAndSet(false, true);
+    }
+
+    public void unlock() {
+        busy.set(false);
+    }
 
     public void solveSubtask(SolveRequest request) {
         try {
@@ -169,5 +179,6 @@ public class WorkerService {
                 resultRequest,
                 Void.class
         );
+        unlock();
     }
 }

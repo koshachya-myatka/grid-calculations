@@ -73,6 +73,10 @@ public class DistributorService {
         RestTemplate restTemplate = new RestTemplate();
         String url = worker.getAddress() + "/solveSubtask";
         ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
+        if (response.getStatusCode().value() == 403){
+            //todo добавить, что воркер занят
+            return false;
+        }
         if (!response.getStatusCode().is2xxSuccessful()) {
             workerService.removeWorker(worker.getWorkerId());
             return false;

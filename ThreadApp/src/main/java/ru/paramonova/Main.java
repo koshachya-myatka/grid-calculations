@@ -7,7 +7,12 @@ public class Main {
     static int[] array = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
     public static void main(String[] args) {
-        System.out.println(threadSum(5));
+//        System.out.println(threadSum(5));
+        DbConnectionPool pool = new DbConnectionPool(5);
+        Thread[] threads = new Thread[7];
+        for (int i = 0; i < 7; i++) {
+            threads[i] = new Thread();
+        }
     }
 
     public static int threadSum(int numThread) {
@@ -28,23 +33,5 @@ public class Main {
             result += threads.get(i).result;
         }
         return result;
-    }
-}
-
-class SummingThread extends Thread {
-    int start;
-    int end;
-    public int result = 0;
-
-    SummingThread(int start, int end) {
-        this.start = start;
-        this.end = end;
-    }
-
-    @Override
-    public void run() {
-        for (int i = start; i < end; i++) {
-            result += Main.array[i];
-        }
     }
 }
