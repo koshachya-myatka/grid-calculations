@@ -21,6 +21,7 @@ public class WorkerController {
             return ResponseEntity.badRequest().body("Не удалось зарегистрировать воркер");
         }
         workerService.setWorkerIdForDistributor(distributorAddress, workerId);
+        workerService.setDistributorRegisterUrl(distributorAddress, registerUrl);
         return ResponseEntity.ok("Воркер зарегистрирован с id " + workerId
                 + " для распределителя " + distributorAddress);
     }
@@ -28,7 +29,7 @@ public class WorkerController {
     @PostMapping("/solveSubtask")
     public ResponseEntity<Void> solveSubtask(@RequestBody SolveRequest request) {
         if (!workerService.tryLock()) {
-            //todo добавить сообщение этому адресу, что освободился
+            workerService.addDistributorInInformWhenNotBusyList(request.getResultUrl());
             return ResponseEntity.status(403).build();
         }
         workerService.solveSubtask(request);

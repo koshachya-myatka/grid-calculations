@@ -3,16 +3,19 @@ package ru.paramonova.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.paramonova.dto.BatchInfo;
+import ru.paramonova.dto.BatchStatus;
 import ru.paramonova.grpc.*;
 
 import java.util.*;
 
 public class ShaperService {
+    private static final long BATCH_TIMEOUT_MS = 30_000;
     // id таски - сама таска
     private final Map<Integer, Task> tasks = new HashMap<>();
-    //todo поменять способ хранения батчей
     // id таски - список ее батчей
-    private final Map<Integer, List<Batch>> batches = new HashMap<>();
+    //todo поправь на batchinfo
+    private final Map<Integer, List<BatchInfo>> batches = new HashMap<>();
     // id таски - ее общее кол-во батчей
     private final Map<Integer, Long> taskTotalBatches = new HashMap<>();
     // id таски - текущий номер ее батча
@@ -37,15 +40,17 @@ public class ShaperService {
         int taskId = nextTaskId++;
         Task task = createTask(taskId, jsonString);
         tasks.put(taskId, task);
-        long totalBatches = (long) (Math.ceil((double) task.getTotalBlackCombinations() / (long) Math.pow(4, 8)) *
-                Math.ceil((double) task.getTotalWhiteCombinations() / (long) Math.pow(16, 3)));
+        long batchWhiteSize = 1L << (4 * 3); // 16^3 = 2^(4*3)
+        long batchBlackSize = 1L << (2 * 8); // 4^8 = 2^(2*8)
+        long whiteChunks = (task.getTotalWhiteCombinations() + batchWhiteSize - 1) / batchWhiteSize;
+        long blackChunks = (task.getTotalBlackCombinations() + batchBlackSize - 1) / batchBlackSize;
+        long totalBatches = whiteChunks * blackChunks;
         taskTotalBatches.put(taskId, totalBatches);
         taskCurrentBatchNum.put(taskId, 0L);
-        results.put(taskId, new ArrayList<>());
         batchStartsWhite.put(taskId, 0L);
         batchStartsBlack.put(taskId, 0L);
-        //todo временно, убрать при смене хранения батчей
         batches.put(taskId, new ArrayList<>());
+        results.put(taskId, new ArrayList<>());
         return task;
     }
 
@@ -109,6 +114,32 @@ public class ShaperService {
         if (task == null) {
             return null;
         }
+
+        //todo проверь на адекватность
+        List<BatchInfo> lst = batches.get(taskId);
+        // пытаемся выдать новый батч
+        if (!isLastBatch(taskId)) {
+            BatchInfo batchInfo = createNextBatchInfo(taskId, task);
+            if (batchInfo != null) {
+                batchInfo.setStatus(BatchStatus.IN_PROGRESS);
+                batchInfo.setLastSendTime(System.currentTimeMillis());
+                lst.add(batchInfo);
+                return batchInfo.getBatch();
+            }
+        }
+        // переотправка зависших батчей
+        long now = System.currentTimeMillis();
+        for (BatchInfo batchInfo : lst) {
+            if (batchInfo.getStatus() == BatchStatus.IN_PROGRESS &&
+                    now - batchInfo.getLastSendTime() > BATCH_TIMEOUT_MS) {
+                batchInfo.setLastSendTime(now);
+                return batchInfo.getBatch();
+            }
+        }
+        return null;
+    }
+
+    public BatchInfo createNextBatchInfo(int taskId, Task task) {
         if (isLastBatch(taskId)) {
             return null;
         }
@@ -117,9 +148,6 @@ public class ShaperService {
         long startWhiteCombination = batchStartsWhite.get(taskId);
         long startBlackCombination = batchStartsBlack.get(taskId);
         if (startWhiteCombination >= totalW || startBlackCombination >= totalB) {
-            //todo добавить сюда закольцовывание при отвале воркеров и потере решений
-            // (отправление батчей без результатов еще раз, мб ориентироваться на статус
-            // и время отправки батча)
             return null;
         }
         long batchId = nextBatchId++;
@@ -142,14 +170,23 @@ public class ShaperService {
         }
         // увеличиваем кол-во уже прошедших батчей задачи
         taskCurrentBatchNum.merge(taskId, 1L, Long::sum);
-        //todo временно, убрать при смене хранения батчей
-        List<Batch> currentTaskBatches = batches.get(taskId);
-        currentTaskBatches.add(batch);
-        return batch;
+        return new BatchInfo(batch);
     }
 
     private boolean isLastBatch(int taskId) {
         return Objects.equals(taskCurrentBatchNum.get(taskId), taskTotalBatches.get(taskId));
+    }
+
+    //todo
+    private boolean isTaskFinished(int taskId) {
+        List<BatchInfo> list = batches.get(taskId);
+        if (list.isEmpty()) return false;
+        for (BatchInfo batchInfo : list) {
+            if (batchInfo.getStatus() != BatchStatus.DONE) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void addResults(int taskId, long batchId, List<Result> newResults) {

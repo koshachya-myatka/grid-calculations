@@ -36,6 +36,10 @@ public class WorkerService {
     private final AtomicBoolean busy = new AtomicBoolean(false);
     // адрес распределителя - id воркера у этого распределителя
     private final Map<String, Integer> workerIds = new HashMap<>();
+    // адрес распределителя - его url для регистрации
+    private final Map<String, String> distributorRegisterUrls = new HashMap<>();
+    // лист с распределителями, которым надо будет кинуть регистрацию еще раз
+    private final List<String> informWhenNotBusyList = new ArrayList<>();
     // все id задач, что он когда-либо решал
     private final List<Integer> tasksIds = new ArrayList<>();
     // id задачи - данные задачи
@@ -75,6 +79,15 @@ public class WorkerService {
         } else {
             workerIds.put(distributorAddress, workerId);
         }
+    }
+
+    public void setDistributorRegisterUrl(String distributorAddress, String registerUrl) {
+        distributorRegisterUrls.put(distributorAddress, registerUrl);
+    }
+
+    public void addDistributorInInformWhenNotBusyList(String resultUrl) {
+        String distributorAddress = getDistributorAddressFromUrlString(resultUrl);
+        informWhenNotBusyList.add(distributorAddress);
     }
 
     public void solveSubtask(SolveRequest request) {
@@ -215,5 +228,18 @@ public class WorkerService {
                 Void.class
         );
         unlock();
+        if (!informWhenNotBusyList.isEmpty()) {
+            for (String address : informWhenNotBusyList) {
+                String registerUrl = distributorRegisterUrls.get(address);
+                Integer workerId = getWorkerIdForDistributor(registerUrl);
+                if (workerId == null) {
+                    workerIds.remove(address);
+                    distributorRegisterUrls.remove(address);
+                } else {
+                    setWorkerIdForDistributor(address, workerId);
+                }
+            }
+            informWhenNotBusyList.clear();
+        }
     }
 }
