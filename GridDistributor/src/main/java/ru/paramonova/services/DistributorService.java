@@ -2,8 +2,10 @@ package ru.paramonova.services;
 
 import com.google.protobuf.util.JsonFormat;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import ru.paramonova.dto.SolveRequest;
 import ru.paramonova.dto.WorkerInfo;
@@ -14,6 +16,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class DistributorService {
+    @Value("${server.port}")
+    private String serverPort;
     private final WorkerService workerService;
     // ключи - id таски
     private final Map<Integer, Task> tasks = new HashMap<>();
@@ -50,7 +54,7 @@ public class DistributorService {
                     .taskId(task.getTaskId())
                     .subtaskId(batch.getBatchId())
                     .jsonSubtaskData(resultSubtaskJson)
-                    .distributorAddress("http://localhost:8081")
+                    .resultUrl("http://localhost:" + serverPort + "/results")
                     .build();
             if (needTaskData) {
                 String taskJson = printer.print(task);
@@ -72,15 +76,17 @@ public class DistributorService {
     private boolean sendSubtask(WorkerInfo worker, SolveRequest request) {
         RestTemplate restTemplate = new RestTemplate();
         String url = worker.getAddress() + "/solveSubtask";
-        ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
-        if (response.getStatusCode().value() == 403){
-            //todo добавить, что воркер занят
-            return false;
-        }
-        if (!response.getStatusCode().is2xxSuccessful()) {
+        try {
+            ResponseEntity<Void> response = restTemplate.postForEntity(url, request, Void.class);
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                workerService.removeWorker(worker.getWorkerId());
+                return false;
+            }
+        } catch (ResourceAccessException e) {
             workerService.removeWorker(worker.getWorkerId());
             return false;
         }
+        System.out.println("Отправил подзадачу на воркер " + worker.getWorkerId());
         return true;
     }
 

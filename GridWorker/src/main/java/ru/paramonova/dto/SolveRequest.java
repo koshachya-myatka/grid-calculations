@@ -14,5 +14,5 @@ public class SolveRequest {
     byte[] jarCalculator;
     String jsonTaskData;
     String jsonSubtaskData;
-    String distributorAddress;
+    String resultUrl;
 }

@@ -13,6 +13,18 @@ import ru.paramonova.services.WorkerService;
 public class WorkerController {
     private final WorkerService workerService;
 
+    @PostMapping("/register")
+    public ResponseEntity<String> registerWorkerInDistributor(@RequestBody String registerUrl) {
+        String distributorAddress = workerService.getDistributorAddressFromUrlString(registerUrl);
+        Integer workerId = workerService.getWorkerIdForDistributor(registerUrl);
+        if (workerId == null) {
+            return ResponseEntity.badRequest().body("Не удалось зарегистрировать воркер");
+        }
+        workerService.setWorkerIdForDistributor(distributorAddress, workerId);
+        return ResponseEntity.ok("Воркер зарегистрирован с id " + workerId
+                + " для распределителя " + distributorAddress);
+    }
+
     @PostMapping("/solveSubtask")
     public ResponseEntity<Void> solveSubtask(@RequestBody SolveRequest request) {
         if (!workerService.tryLock()) {

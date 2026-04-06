@@ -2,7 +2,7 @@ package ru.paramonova.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.jayway.jsonpath.JsonPath;
-import lombok.Setter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import ru.paramonova.annotations.Calculator;
@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -28,10 +29,13 @@ import java.util.jar.JarFile;
 
 @Service
 public class WorkerService {
+    @Value("${server.port}")
+    private String serverPort;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    // занятость воркера решением какой-то подзадачи
     private final AtomicBoolean busy = new AtomicBoolean(false);
-    @Setter
-    private int workerId;
+    // адрес распределителя - id воркера у этого распределителя
+    private final Map<String, Integer> workerIds = new HashMap<>();
     // все id задач, что он когда-либо решал
     private final List<Integer> tasksIds = new ArrayList<>();
     // id задачи - данные задачи
@@ -45,6 +49,32 @@ public class WorkerService {
 
     public void unlock() {
         busy.set(false);
+    }
+
+    public String getDistributorAddressFromUrlString(String urlString) {
+        URL url;
+        try {
+            url = new URL(urlString);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Не удалось получить адрес распределителя\n");
+        }
+        return url.getProtocol() + "://" + url.getAuthority();
+    }
+
+    public Integer getWorkerIdForDistributor(String registerUrl) {
+        RestTemplate restTemplate = new RestTemplate();
+        return restTemplate.postForObject(
+                registerUrl,
+                "http://localhost:" + serverPort,
+                Integer.class);
+    }
+
+    public void setWorkerIdForDistributor(String distributorAddress, Integer workerId) {
+        if (workerIds.containsKey(distributorAddress)) {
+            workerIds.replace(distributorAddress, workerId);
+        } else {
+            workerIds.put(distributorAddress, workerId);
+        }
     }
 
     public void solveSubtask(SolveRequest request) {
@@ -64,12 +94,13 @@ public class WorkerService {
         Class<?> calculatorClass = findCalculatorClass(jarCalculator);
         calculatorInstances.put(taskId, calculatorClass.getDeclaredConstructor().newInstance());
         mainMethods.put(taskId, findMainMethod(calculatorClass));
-        System.out.println("Воркер " + workerId + " получил данные задачи " + taskId + "\n");
+        System.out.println("Воркер получил данные задачи " + taskId + "\n");
     }
 
     private Class<?> findCalculatorClass(byte[] jarBytes) {
+        int randomNumber = (int) (Math.random() * 900000) + 100000;
         try {
-            Path tempJar = Files.createTempFile("worker-" + workerId + "-", ".jar");
+            Path tempJar = Files.createTempFile("worker-" + randomNumber + "-", ".jar");
             Files.write(tempJar, jarBytes);
             tempJar.toFile().deleteOnExit();
             URLClassLoader classLoader = new URLClassLoader(
@@ -160,12 +191,16 @@ public class WorkerService {
         if (result == null) {
             throw new RuntimeException("@Calculator вернул null результат\n");
         }
+        String distributorAddress = getDistributorAddressFromUrlString(request.getResultUrl());
+        if (workerIds.get(distributorAddress) == null) {
+            throw new RuntimeException("Не был найден адрес распределителя среди зарегистрированных\n");
+        }
         int taskId = request.getTaskId();
         System.out.println("Отправляем результат для подзадачи " + request.getSubtaskId() + " задачи " + taskId + "\n");
         ResultRequest resultRequest = null;
         try {
             resultRequest = ResultRequest.builder()
-                    .workerId(workerId)
+                    .workerId(workerIds.get(distributorAddress))
                     .taskId(taskId)
                     .subtaskId(request.getSubtaskId())
                     .jsonResult(objectMapper.writeValueAsString(result))
@@ -175,7 +210,7 @@ public class WorkerService {
         }
         RestTemplate rest = new RestTemplate();
         rest.postForEntity(
-                request.getDistributorAddress() + "/results",
+                request.getResultUrl(),
                 resultRequest,
                 Void.class
         );

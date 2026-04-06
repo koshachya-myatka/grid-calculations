@@ -1,18 +1,22 @@
-1. Собери заново jar-ники GridAnnotations, GridCalculator, GridShaper, GridWorker
+1. Собери заново jar-ники GridAnnotations, GridCalculator, GridWorker (mvn install)  
+Скомпилируй GridShaper, GridDistributor (mvn compile)
 
 2. Запусти GridShaper
 
 3. Запусти GridDistributor
-    - для добавления задачи кидай curl с изменением json с условием
+    - для добавления задачи кидай curl с данными условия в json (меняй адрес распрделителя localhost:8081 и данные задачи -d)
     - curl -X POST http://localhost:8081/tasks ^
     -H "Content-Type: application/json" ^
     -d "json"
 
-4. Запусти GridWorker из консоли в нужном кол-ве, меняя порты  
+4. Запусти GridWorker из консоли в нужном кол-ве, меняя порты (--server.port)
     - java -jar "D:\Study\Grid Calculations\GridWorker\target\GridWorker-1.0.jar" --server.port=8090  
     - java -jar "C:\Study\grid-calculations\GridWorker\target\GridWorker-1.0.jar" --server.port=8090
 
-5. Примеры json-ок:
+5. Зарегистрируй воркер(ы) на нужном распределителе, меняя порт у localhost:8090 и url регистрации (-d)
+    - curl -X POST http://localhost:8090/register -H "Content-Type: application/json" -d "http://localhost:8081/workers"
+
+6. Примеры условий задач
     - curl -X POST http://localhost:8081/tasks ^
     -H "Content-Type: application/json" ^
     -d "{ \"fieldWidth\": 4, \"fieldLength\": 3, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 0, \"y\": 3, \"color\": 0 }, { \"x\": 2, \"y\": 2, \"color\": 1 } ] }"
