@@ -110,12 +110,14 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                     if (shaperService.hasTaskSuccessfulResult(taskId)) {
                         shaperService.getResult(taskId);
                         responseObserver.onCompleted();
+                        onCompleted();
                         return;
                     }
                     Batch batch = shaperService.getNextBatch(taskId);
                     if (batch == null && shaperService.isTaskFinished(taskId)) {
                         shaperService.getResult(taskId);
                         responseObserver.onCompleted();
+                        onCompleted();
                         return;
                     }
                     BatchResponse.Builder responseBuilder = BatchResponse.newBuilder();
@@ -142,10 +144,10 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
 
             @Override
             public void onCompleted() {
+                System.out.println("Стрим задачи " + currentTaskId + " завершен. Удаляем его из активных\n");
                 if (currentTaskId != -1) {
                     activeStreams.remove(currentTaskId);
                 }
-                responseObserver.onCompleted();
             }
         };
     }
