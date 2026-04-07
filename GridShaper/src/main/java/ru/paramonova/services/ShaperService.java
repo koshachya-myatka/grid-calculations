@@ -111,16 +111,14 @@ public class ShaperService {
     public Batch getNextBatch(int taskId) {
         Task task = tasks.get(taskId);
         if (task == null) {
-            //todo кинуть ошибку?
-            return null;
+            throw new RuntimeException("Задача с id " + taskId + " не была найдена\n");
         }
-
-        //todo проверь на адекватность
         List<BatchInfo> lst = batches.get(taskId);
-        //todo кинуть ошибку?
-
+        if (lst == null) {
+            throw new RuntimeException("Список батчей задачи " + taskId + " не был найден\n");
+        }
         // пытаемся выдать новый батч
-        if (!isLastBatch(taskId)) {
+        if (!isLastBatchGenerated(taskId)) {
             BatchInfo batchInfo = createNextBatchInfo(task);
             if (batchInfo != null) {
                 batchInfo.setStatus(BatchStatus.IN_PROGRESS);
@@ -129,7 +127,7 @@ public class ShaperService {
                 return batchInfo.getBatch();
             }
         }
-        // переотправка зависших батчей, если все батчи уже сгенерены
+        // переотправка батчей, если все батчи уже сгенерены
         long now = System.currentTimeMillis();
         for (BatchInfo batchInfo : lst) {
             if (batchInfo.getStatus() == BatchStatus.IN_PROGRESS &&
@@ -143,7 +141,7 @@ public class ShaperService {
 
     public BatchInfo createNextBatchInfo(Task task) {
         int taskId = task.getTaskId();
-        if (isLastBatch(taskId)) {
+        if (isLastBatchGenerated(taskId)) {
             return null;
         }
         long totalW = task.getTotalWhiteCombinations();
@@ -176,13 +174,33 @@ public class ShaperService {
         return new BatchInfo(batch);
     }
 
-    private boolean isLastBatch(int taskId) {
+    public long getTimeoutForTask(int taskId) {
+        List<BatchInfo> lst = batches.get(taskId);
+        if (lst == null) {
+            throw new RuntimeException("Список батчей задачи " + taskId + " не был найден\n");
+        }
+        long timeout = Long.MAX_VALUE;
+        for (BatchInfo batchInfo : lst) {
+            if (batchInfo.getStatus() == BatchStatus.IN_PROGRESS &&
+                    batchInfo.getLastSendTime() < timeout) {
+                timeout = batchInfo.getLastSendTime();
+            }
+        }
+        if (timeout == Long.MAX_VALUE) {
+            timeout = BATCH_TIMEOUT_MS;
+        }
+        return timeout;
+    }
+
+    private boolean isLastBatchGenerated(int taskId) {
         return Objects.equals(taskCurrentBatchNum.get(taskId), taskTotalBatches.get(taskId));
     }
 
-    //todo
     public boolean isTaskFinished(int taskId) {
         List<BatchInfo> lst = batches.get(taskId);
+        if (lst == null) {
+            throw new RuntimeException("Список батчей задачи " + taskId + " не был найден\n");
+        }
         if (lst.isEmpty()) return false;
         for (BatchInfo batchInfo : lst) {
             if (batchInfo.getStatus() != BatchStatus.DONE) {
@@ -192,7 +210,7 @@ public class ShaperService {
         return true;
     }
 
-    public boolean isSuccessfulResult(int taskId) {
+    public boolean hasTaskSuccessfulResult(int taskId) {
         if (results.get(taskId) == null) {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
@@ -204,7 +222,6 @@ public class ShaperService {
         if (results.get(taskId) == null) {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
-        //todo тут добавить смену статуса у батча, когда мы получили результаты для него
         Optional<BatchInfo> optionalBatchInfo = batches.get(taskId).stream()
                 .filter(bI -> bI.getBatch().getBatchId() == batchId)
                 .findFirst();
@@ -218,10 +235,6 @@ public class ShaperService {
             currentResults.addAll(newResults);
             taskCurrentBatchNum.replace(taskId, taskTotalBatches.get(taskId));
         }
-        //todo убрать?
-//        if (isLastBatch(taskId)) {
-//            getResult(taskId);
-//        }
     }
 
     public void getResult(int taskId) {
@@ -232,7 +245,7 @@ public class ShaperService {
         if (allResults.isEmpty()) {
             System.out.println("Для задачи " + taskId + " не было найдено успешное решение");
         } else {
-            System.out.println("Всего результатов: " + results.get(taskId).size());
+            System.out.println("У задачи " + taskId + " всего успешных результатов: " + results.get(taskId).size());
             for (Result result : allResults) {
                 visualizeTaskSolution(taskId, result);
             }

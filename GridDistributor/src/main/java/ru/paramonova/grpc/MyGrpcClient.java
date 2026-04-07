@@ -25,6 +25,7 @@ public class MyGrpcClient {
     @Autowired
     private DistributorService distributorService;
     private final Semaphore workerAvailable = new Semaphore(0);
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public void addFreeWorker() {
         workerAvailable.release();
@@ -89,6 +90,12 @@ public class MyGrpcClient {
             @Override
             public void onNext(BatchResponse response) {
                 receivedCount++;
+                if (!response.hasBatch()) {
+                    scheduler.schedule(() -> {
+                        addFreeWorker();
+                    }, response.getTimeout(), TimeUnit.MILLISECONDS);
+                    return;
+                }
                 Batch batch = response.getBatch();
                 StringBuilder sb = new StringBuilder();
                 sb.append("Задача: ").append(batch.getTaskId()).append("\n")

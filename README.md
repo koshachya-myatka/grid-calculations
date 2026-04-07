@@ -17,17 +17,23 @@
     - curl -X POST http://localhost:8090/register -H "Content-Type: application/json" -d "http://localhost:8081/workers"
 
 6. Примеры условий задач
+    - решает быстро:
     - curl -X POST http://localhost:8081/tasks ^
     -H "Content-Type: application/json" ^
     -d "{ \"fieldWidth\": 4, \"fieldLength\": 3, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 0, \"y\": 3, \"color\": 0 }, { \"x\": 2, \"y\": 2, \"color\": 1 } ] }"
 
     - curl -X POST http://localhost:8081/tasks ^
     -H "Content-Type: application/json" ^
-    -d "{ \"fieldWidth\": 9, \"fieldLength\": 5, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 0, \"y\": 2, \"color\": 1 }, { \"x\": 0, \"y\": 6, \"color\": 1 }, { \"x\": 0, \"y\": 8, \"color\": 0 }, { \"x\": 2, \"y\": 4, \"color\": 0 }, { \"x\": 3, \"y\": 2, \"color\": 1 }, { \"x\": 4, \"y\": 0, \"color\": 0 }, { \"x\": 4, \"y\": 2, \"color\": 1 }, { \"x\": 4, \"y\": 4, \"color\": 0 }, { \"x\": 4, \"y\": 8, \"color\": 0 } ] }"
+    -d "{ \"fieldWidth\": 7, \"fieldLength\": 7, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 1, \"y\": 3, \"color\": 1 }, { \"x\": 1, \"y\": 5, \"color\": 0 }, { \"x\": 1, \"y\": 6, \"color\": 1 }, { \"x\": 2, \"y\": 0, \"color\": 0 }, { \"x\": 3, \"y\": 0, \"color\": 0 }, { \"x\": 4, \"y\": 2, \"color\": 1 }, { \"x\": 4, \"y\": 5, \"color\": 1 }, { \"x\": 6, \"y\": 0, \"color\": 0 }, { \"x\": 6, \"y\": 6, \"color\": 0 } ] }"
 
     - curl -X POST http://localhost:8081/tasks ^
     -H "Content-Type: application/json" ^
-    -d "{ \"fieldWidth\": 7, \"fieldLength\": 7, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 1, \"y\": 3, \"color\": 1 }, { \"x\": 1, \"y\": 5, \"color\": 0 }, { \"x\": 1, \"y\": 6, \"color\": 1 }, { \"x\": 2, \"y\": 0, \"color\": 0 }, { \"x\": 3, \"y\": 0, \"color\": 0 }, { \"x\": 4, \"y\": 2, \"color\": 1 }, { \"x\": 4, \"y\": 5, \"color\": 1 }, { \"x\": 6, \"y\": 0, \"color\": 0 }, { \"x\": 6, \"y\": 6, \"color\": 0 } ] }"
+    -d "{ \"fieldWidth\": 9, \"fieldLength\": 5, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 0, \"y\": 2, \"color\": 1 }, { \"x\": 0, \"y\": 6, \"color\": 1 }, { \"x\": 0, \"y\": 8, \"color\": 0 }, { \"x\": 2, \"y\": 4, \"color\": 0 }, { \"x\": 3, \"y\": 2, \"color\": 1 }, { \"x\": 4, \"y\": 0, \"color\": 0 }, { \"x\": 4, \"y\": 2, \"color\": 1 }, { \"x\": 4, \"y\": 4, \"color\": 0 }, { \"x\": 4, \"y\": 8, \"color\": 0 } ] }"
+
+    - решает долго:
+    - curl -X POST http://localhost:8081/tasks ^
+    -H "Content-Type: application/json" ^
+    -d "{ \"fieldWidth\": 9, \"fieldLength\": 10, \"circles\": [ { \"x\": 0, \"y\": 0, \"color\": 0 }, { \"x\": 1, \"y\": 8, \"color\": 0 }, { \"x\": 2, \"y\": 2, \"color\": 0 }, { \"x\": 2, \"y\": 4, \"color\": 0 }, { \"x\": 4, \"y\": 0, \"color\": 0 }, { \"x\": 6, \"y\": 2, \"color\": 0 }, { \"x\": 7, \"y\": 0, \"color\": 1 }, { \"x\": 7, \"y\": 4, \"color\": 0 }, { \"x\": 9, \"y\": 2, \"color\": 0 }, { \"x\": 9, \"y\": 8, \"color\": 0 } ] }"
 
     - curl -X POST http://localhost:8081/tasks ^
     -H "Content-Type: application/json" ^

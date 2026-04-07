@@ -107,9 +107,7 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                                 .asRuntimeException());
                         return;
                     }
-                    //todo проверить (мб возвращать не батчи, а обертку со статусом задачи,
-                    // чтоб тормозить стрим с той стороны?)
-                    if (shaperService.isSuccessfulResult(taskId)) {
+                    if (shaperService.hasTaskSuccessfulResult(taskId)) {
                         shaperService.getResult(taskId);
                         responseObserver.onCompleted();
                         return;
@@ -120,9 +118,12 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                         responseObserver.onCompleted();
                         return;
                     }
-                    BatchResponse.Builder responseBuilder = BatchResponse
-                            .newBuilder()
-                            .setBatch(batch);
+                    BatchResponse.Builder responseBuilder = BatchResponse.newBuilder();
+                    if (batch != null) {
+                        responseBuilder.setBatch(batch);
+                    } else {
+                        responseBuilder.setTimeout(shaperService.getTimeoutForTask(taskId));
+                    }
                     responseObserver.onNext(responseBuilder.build());
                 } catch (Exception e) {
                     responseObserver.onError(io.grpc.Status.INTERNAL

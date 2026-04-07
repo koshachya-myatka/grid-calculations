@@ -86,7 +86,7 @@ public class DistributorService {
             workerService.removeWorker(worker.getWorkerId());
             return false;
         }
-        System.out.println("Отправил подзадачу на воркер " + worker.getWorkerId());
+        System.out.println("Отправил подзадачу на воркер " + worker.getWorkerId() + "\n");
         return true;
     }
 
