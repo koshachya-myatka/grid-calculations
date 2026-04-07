@@ -179,15 +179,13 @@ public class ShaperService {
         if (lst == null) {
             throw new RuntimeException("Список батчей задачи " + taskId + " не был найден\n");
         }
-        long timeout = Long.MAX_VALUE;
+        long now = System.currentTimeMillis();
+        long timeout = BATCH_TIMEOUT_MS;
         for (BatchInfo batchInfo : lst) {
             if (batchInfo.getStatus() == BatchStatus.IN_PROGRESS &&
-                    batchInfo.getLastSendTime() < timeout) {
-                timeout = batchInfo.getLastSendTime();
+                    BATCH_TIMEOUT_MS - (now - batchInfo.getLastSendTime()) < timeout) {
+                timeout = BATCH_TIMEOUT_MS - (now - batchInfo.getLastSendTime());
             }
-        }
-        if (timeout == Long.MAX_VALUE) {
-            timeout = BATCH_TIMEOUT_MS;
         }
         return timeout;
     }
