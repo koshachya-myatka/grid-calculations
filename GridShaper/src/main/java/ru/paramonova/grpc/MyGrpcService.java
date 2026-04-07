@@ -107,12 +107,21 @@ public class MyGrpcService extends GridServiceGrpc.GridServiceImplBase {
                                 .asRuntimeException());
                         return;
                     }
-                    Batch batch = shaperService.getNextBatch(taskId);
-                    if (batch == null) {
+                    //todo проверить (мб возвращать не батчи, а обертку со статусом задачи,
+                    // чтоб тормозить стрим с той стороны?)
+                    if (shaperService.isSuccessfulResult(taskId)) {
+                        shaperService.getResult(taskId);
                         responseObserver.onCompleted();
                         return;
                     }
-                    BatchResponse.Builder responseBuilder = BatchResponse.newBuilder()
+                    Batch batch = shaperService.getNextBatch(taskId);
+                    if (batch == null && shaperService.isTaskFinished(taskId)) {
+                        shaperService.getResult(taskId);
+                        responseObserver.onCompleted();
+                        return;
+                    }
+                    BatchResponse.Builder responseBuilder = BatchResponse
+                            .newBuilder()
                             .setBatch(batch);
                     responseObserver.onNext(responseBuilder.build());
                 } catch (Exception e) {

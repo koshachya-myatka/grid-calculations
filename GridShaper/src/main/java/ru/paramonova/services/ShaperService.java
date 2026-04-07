@@ -10,11 +10,10 @@ import ru.paramonova.grpc.*;
 import java.util.*;
 
 public class ShaperService {
-    private static final long BATCH_TIMEOUT_MS = 30_000;
+    private final long BATCH_TIMEOUT_MS = 30_000;
     // id таски - сама таска
     private final Map<Integer, Task> tasks = new HashMap<>();
     // id таски - список ее батчей
-    //todo поправь на batchinfo
     private final Map<Integer, List<BatchInfo>> batches = new HashMap<>();
     // id таски - ее общее кол-во батчей
     private final Map<Integer, Long> taskTotalBatches = new HashMap<>();
@@ -112,14 +111,17 @@ public class ShaperService {
     public Batch getNextBatch(int taskId) {
         Task task = tasks.get(taskId);
         if (task == null) {
+            //todo кинуть ошибку?
             return null;
         }
 
         //todo проверь на адекватность
         List<BatchInfo> lst = batches.get(taskId);
+        //todo кинуть ошибку?
+
         // пытаемся выдать новый батч
         if (!isLastBatch(taskId)) {
-            BatchInfo batchInfo = createNextBatchInfo(taskId, task);
+            BatchInfo batchInfo = createNextBatchInfo(task);
             if (batchInfo != null) {
                 batchInfo.setStatus(BatchStatus.IN_PROGRESS);
                 batchInfo.setLastSendTime(System.currentTimeMillis());
@@ -127,7 +129,7 @@ public class ShaperService {
                 return batchInfo.getBatch();
             }
         }
-        // переотправка зависших батчей
+        // переотправка зависших батчей, если все батчи уже сгенерены
         long now = System.currentTimeMillis();
         for (BatchInfo batchInfo : lst) {
             if (batchInfo.getStatus() == BatchStatus.IN_PROGRESS &&
@@ -139,7 +141,8 @@ public class ShaperService {
         return null;
     }
 
-    public BatchInfo createNextBatchInfo(int taskId, Task task) {
+    public BatchInfo createNextBatchInfo(Task task) {
+        int taskId = task.getTaskId();
         if (isLastBatch(taskId)) {
             return null;
         }
@@ -178,10 +181,10 @@ public class ShaperService {
     }
 
     //todo
-    private boolean isTaskFinished(int taskId) {
-        List<BatchInfo> list = batches.get(taskId);
-        if (list.isEmpty()) return false;
-        for (BatchInfo batchInfo : list) {
+    public boolean isTaskFinished(int taskId) {
+        List<BatchInfo> lst = batches.get(taskId);
+        if (lst.isEmpty()) return false;
+        for (BatchInfo batchInfo : lst) {
             if (batchInfo.getStatus() != BatchStatus.DONE) {
                 return false;
             }
@@ -189,20 +192,36 @@ public class ShaperService {
         return true;
     }
 
+    public boolean isSuccessfulResult(int taskId) {
+        if (results.get(taskId) == null) {
+            throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
+        }
+        List<Result> allResults = results.get(taskId);
+        return !allResults.isEmpty();
+    }
+
     public void addResults(int taskId, long batchId, List<Result> newResults) {
         if (results.get(taskId) == null) {
             throw new RuntimeException("Отсутствует список для результатов задачи " + taskId + "\n");
         }
         //todo тут добавить смену статуса у батча, когда мы получили результаты для него
-
+        Optional<BatchInfo> optionalBatchInfo = batches.get(taskId).stream()
+                .filter(bI -> bI.getBatch().getBatchId() == batchId)
+                .findFirst();
+        if (optionalBatchInfo.isEmpty()) {
+            throw new RuntimeException("Батч " + batchId + " задачи " + taskId + " не был найден\n");
+        }
+        BatchInfo batchInfo = optionalBatchInfo.get();
+        batchInfo.setStatus(BatchStatus.DONE);
         if (!newResults.isEmpty()) {
             List<Result> currentResults = results.get(taskId);
             currentResults.addAll(newResults);
             taskCurrentBatchNum.replace(taskId, taskTotalBatches.get(taskId));
         }
-        if (isLastBatch(taskId)) {
-            getResult(taskId);
-        }
+        //todo убрать?
+//        if (isLastBatch(taskId)) {
+//            getResult(taskId);
+//        }
     }
 
     public void getResult(int taskId) {
